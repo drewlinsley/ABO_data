@@ -12,7 +12,8 @@ from glob import glob
 from tqdm import tqdm
 from scipy import stats, misc
 from sklearn import linear_model
-from declare_datasets import declare_allen_datasets as dad
+# from declare_datasets import declare_allen_datasets as dad
+from declare_datasets_loop import declare_allen_datasets as dad
 from allen_config import Allen_Brain_Observatory_Config as Config
 from allensdk.brain_observatory import stimulus_info
 try:
@@ -157,7 +158,18 @@ def process_body(
     df['stimulus_name'] = cell_data['stim_template'].item()
     # df['raw_stimuli'] = raw_stimuli
     proc_stimuli = all_stimuli[cell_data['stim_template'].item()]['processed']
-    df['proc_stimuli'] = proc_stimuli
+    if exp_dict['st_conv']:
+        timesteps = len(
+            range(exp_dict['neural_delay'][0], exp_dict['neural_delay'][1]))
+        st_stimuli = []
+        for idx in range(len(proc_stimuli)):
+            st_stimuli += [
+                proc_stimuli[x] for x in range(idx, idx + timesteps)
+                ]
+        import ipdb;ipdb.set_trace()
+        df['proc_stimuli'] = np.asarray(st_stimuli)
+    else:
+        df['proc_stimuli'] = proc_stimuli
 
     # Neural data
     neural_data = load_data(
@@ -193,7 +205,12 @@ def process_body(
             neural_data_trimmed[idx] = neural_data[it_stim_table_idx]
         # Use the first event in stim_table as the triggering event
         stim_table_idx = stim_table[:, 1] + slice_inds[0]
-        neural_data_trimmed = neural_data_trimmed.mean(0)
+        if exp_dict['st_conv']:
+            # Use the list of neural events for a spatiotemporal model
+            neural_data_trimmed = [neural_data_trimmed]
+        else:
+            # Average across neural events
+            neural_data_trimmed = neural_data_trimmed.mean(0)
     else:
         # Constant offset
         print 'Using constant offset of %s events.' % exp_dict['neural_delay']
@@ -505,6 +522,7 @@ def load_npzs(
         ROImasks = {}
         images = {}
         cell_specimen_ids = {}
+        import ipdb;ipdb.set_trace()
         for stim in zip(unique_stimuli):
             stim = stim[0]
             labels[stim] = []
@@ -649,6 +667,8 @@ def load_npzs(
             }]
 
     # Concatenate data into equal-sized lists
+    import ipdb;ipdb.set_trace()
+    # TODO: FIX FOR SPATIOTEMPORAL DATA
     event_dict = []
     for d in output_data:
         ref_length = d['image'].shape[0]

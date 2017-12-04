@@ -21,6 +21,85 @@ from datetime import datetime
 sshtunnel.DAEMON = True  # Prevent hanging process due to forward thread
 
 
+def query_neurons_rfs(queries, filter_by_stim, sessions):
+    """Wrapper for querying neurons from DB.
+    Parameters
+    ----------
+    queries : list of list of querying parameters
+    filter_by_stim: list of strings
+    sessions: list strings
+
+    Returns
+    -------
+    all_data_dicts : list of dictionaries in lists
+    """
+    all_data_dicts = []
+    for q in queries:
+        it_query = data_db.get_cells_all_data_by_rf_and_stimuli(
+            rfs=q,
+            stimuli=filter_by_stim,
+            sessions=sessions)
+        all_data_dicts += it_query
+    return all_data_dicts
+
+
+def create_grid_queries(all_data_dicts, smod=2):
+    """
+    Derives coordinates for x_width by y_width grids of the receptive field.
+    Written by MPC modified by Michele.
+
+    Parameters
+    ----------
+    all_data_dicts : list of list of dictionaries of Allen neurons
+    smod: int for stride
+
+    Returns
+    -------
+    queries : list of dictionaries in lists
+    """
+    rf_width_y, rf_width_x = [], []
+    rf_y, rf_x = [], []
+    for dat in all_data_dicts:
+        rf_width_y += [dat['on_width_y']]
+        rf_width_x += [dat['on_width_x']]
+        cre_line = dat['cre_line']
+        structure = dat['structure']
+        rf_y += [dat['on_center_y']]
+        rf_x += [dat['on_center_x']]
+
+    # Get 95th percentile x and y width
+    y_width = int(np.ceil(np.percentile(rf_width_y, 95)))
+    x_width = int(np.ceil(np.percentile(rf_width_x, 95)))
+
+    # Stride of the neuron bins
+    y_stride = int(y_width/smod)
+    x_stride = int(x_width/smod)
+
+    # Create queries that have width and height by the receptive field size
+    y_limit = int(np.floor(np.max(rf_y)))
+    x_limit = int(np.floor(np.max(rf_x)))
+    queries = []
+    for x1 in (range(0, x_limit, x_stride)):
+        for y1 in range(0, y_limit, y_stride):
+
+            # Add width to each x1 as long as it's not more than x_max
+            x2 = x1 + x_width
+            # Add width to each y1 as long as it's not more than y_max
+            y2 = y1 + y_width
+
+            # add new coordinate range to queries
+            queries += [[{
+                    'rf_coordinate_range': {  # Get all cells
+                        'x_min': x1,
+                        'x_max': x2,
+                        'y_min': y1,
+                        'y_max': y2,
+                    },
+                    'cre_line': cre_line,
+                    'structure': structure}]]
+    return queries
+
+
 def make_dir(d):
     """Make directory d if it does not exist."""
     if not os.path.exists(d):
@@ -558,7 +637,8 @@ class declare_allen_datasets():
     def globals(self):
         """Global variables for all datasets."""
         return {
-            'neural_delay': [8, 10],  # MS delay * 30fps for neural data
+            'neural_delay': [8, 11],  # MS delay * 30fps for neural data
+            'st_conv': False,
             'tf_types': {  # How to store each in tfrecords
                 'neural_trace_trimmed': 'float',
                 'proc_stimuli': 'string',
@@ -597,6 +677,7 @@ class declare_allen_datasets():
                 # 'on_width_x': 'repeat',
                 # 'off_width_y': 'repeat'
             },
+            'weight_sharing': True,
             'detrend': False,
             'deconv_method': None,
             'randomize_selection': False,
@@ -746,31 +827,143 @@ class declare_allen_datasets():
                 'label'
             ]
         # exp_dict['deconv_method'] = 'c2s'
-        exp_dict['cc_repo_vars'] = {
-                'output_size': [1, 1],  # target variable -- neural activity,
-                'model_im_size': [152, 304, 1],  # [152, 304, 1],
-                'loss_function': 'pearson',
-                'score_metric': 'pearson',
-                'preprocess': 'resize'
-            }
         exp_dict['cv_split'] = {
             'cv_split_single_stim': {
                 'target': 0,
                 'split': 0.9
             }
         }
-        # exp_dict['cv_split'] = {
-        #         'split_on_stim': 'natural_movie_two'  # Specify train set
-        # }
+        exp_dict['neural_delay'] = [8, 11]  # MS delay * 30fps for neural data
+        exp_dict['slice_frames'] = 5
+        exp_dict['st_conv'] = len(
+            range(exp_dict['neural_delay'][0], exp_dict['neural_delay'][1]))
+        exp_dict['cc_repo_vars'] = {
+                'output_size': [exp_dict['st_conv'], 1, 1],
+                'model_im_size': [exp_dict['st_conv'], 152, 304, 1],
+                'loss_function': 'pearson',
+                'score_metric': 'pearson',
+                'preprocess': 'resize'
+            }
+        exp_dict['weight_sharing'] = True
         return exp_dict
+
+
+def process_dataset(
+        dataset_method,
+        rf_dict,
+        this_dataset_name,
+        model_directory,
+        model_templates,
+        exps,
+        template_experiment,
+        session_name,
+        meta_dir,
+        db_config,
+        experiment_file,
+        main_config,
+        N=16,
+        idx=0):
+
+    # 1. Prepare dataset
+    x_min = np.floor(rf_dict['on_center_x'])
+    y_min = np.floor(rf_dict['on_center_y'])
+    if 'on_center_x_max' in rf_dict:
+        x_max = np.floor(rf_dict['on_center_x_max'])
+    else:
+        x_max = np.floor(rf_dict['on_center_x']) + 1
+    if 'on_center_y_max' in rf_dict:
+        y_max = np.floor(rf_dict['on_center_y_max'])
+    else:
+        y_max = np.floor(rf_dict['on_center_y']) + 1
+    rf_query = dataset_method['rf_query'][0]
+    rf_query['rf_coordinate_range']['x_min'] = x_min
+    rf_query['rf_coordinate_range']['x_max'] = x_max
+    rf_query['rf_coordinate_range']['y_min'] = y_min
+    rf_query['rf_coordinate_range']['y_max'] = y_max
+    rf_query['structure'] = rf_dict[
+        'structure']
+    rf_query['cre_line'] = rf_dict[
+        'cre_line']
+    rf_query['imaging_depth'] = rf_dict[
+        'imaging_depth']
+    dataset_method['rf_query'][0] = rf_query
+    dataset_name = '%s_%s_%s_%s_%s_%s' % (
+        rf_dict['structure'],
+        rf_dict['cre_line'],
+        rf_dict['imaging_depth'],
+        int(rf_query['rf_coordinate_range']['x_min']*100),
+        int(rf_query['rf_coordinate_range']['y_min']*100),
+        idx)
+
+    print 'Creating dataset %s.' % dataset_name
+    method_name = ''.join(
+        random.choice(  # TODO: FIX THIS
+            string.ascii_uppercase + string.ascii_lowercase)
+        for _ in range(N))
+    method_name = this_dataset_name + method_name
+    dataset_method['experiment_name'] = method_name
+    dataset_method['dataset_name'] = dataset_name
+    dataset_method['cell_specimen_id'] = rf_dict['cell_specimen_id']
+
+    # 2. Encode dataset
+    encode_datasets.main(dataset_method)
+
+    # 3. Prepare models in CC-BP
+    new_model_dir = os.path.join(
+        model_directory,
+        method_name)
+    make_dir(new_model_dir)
+    for f in model_templates:
+        dest = os.path.join(
+            new_model_dir,
+            f.split(os.path.sep)[-1])
+        shutil.copy(f, dest)
+
+    # 4. Add dataset to CC-BP database
+    it_exp = exps[template_experiment]()
+    it_exp['experiment_name'] = [method_name]  # [dataset_name]
+    it_exp['dataset'] = [method_name]  # [dataset_name]
+    it_exp['experiment_link'] = [session_name]
+    it_exp = tweak_params(it_exp)
+    np.savez(
+        os.path.join(meta_dir, dataset_name),
+        it_exp=it_exp,
+        dataset_method=dataset_method,
+        rf_data=rf_dict)
+    prep_exp(it_exp, db_config)
+
+    # 5. Add the experiment method
+    add_experiment(
+        experiment_file,
+        main_config.exp_method_template,
+        method_name)
+
+
+def rf_extents(rf_dict):
+    """Find neuron RF extents."""
+    x_min, y_min, x_max, y_max = np.inf, np.inf, -np.inf, -np.inf
+    for rf in rf_dict:
+        x_min = np.min([rf['on_center_x'], x_min])
+        x_max = np.max([rf['on_center_x'], x_max])
+        y_min = np.min([rf['on_center_y'], y_min])
+        y_max = np.max([rf['on_center_y'], y_max])
+    if x_min == x_max:
+        x_max += 1
+    if y_min == y_max:
+        y_max += 1
+    return {
+        'x_min': x_min,
+        'x_max': x_max,
+        'y_min': y_min,
+        'y_max': y_max
+    }
 
 
 def build_multiple_datasets(
         template_dataset='ALLEN_st_cells_1_movies',
         template_experiment='ALLEN_selected_cells_1',
         model_structs='ALLEN_selected_cells_1',
-        this_dataset_name='MULTIALLEN_lfour_',
-        weight_sharing=True,
+        this_dataset_name='MULTIALLEN_ws_st_',
         N=16):
     """Main function for creating multiple datasets of cells."""
     main_config = Allen_Brain_Observatory_Config()
@@ -782,27 +975,19 @@ def build_multiple_datasets(
     exps = experiments.experiments()
     db_config = credentials.postgresql_connection()
 
-    # Query neuron data
+    # Query all neurons for an experiment setup
     queries = [  # MICHELE: ADD LOOP HERE
-        # [{  # Layer 2/3 models
-        #     'rf_coordinate_range': {  # Get all cells
-        #         'x_min': -10000,
-        #         'x_max': 10000,
-        #         'y_min': -10000,
-        #         'y_max': 10000,
-        #     },
-        #     'cre_line': 'Cux2',
-        #     'structure': 'VISp',
-        #     'imaging_depth': 175}],
-        [{  # Layer 4 models
+        [{
             'rf_coordinate_range': {  # Get all cells
                 'x_min': -10000,
                 'x_max': 10000,
                 'y_min': -10000,
                 'y_max': 10000,
             },
-            'cre_line': 'Scnn1a-Tg3-Cre',  # Nr5a1-Cre
-            'structure': 'VISp'}]
+            'cre_line': 'Scnn1a-Tg3-Cre',  # Nr5a1-Cre 'Cux2' # Layer 4 models
+            'structure': 'VISp',
+            # 'imaging_depth': 175 # Layer 2/3 models
+            }]
     ]
     filter_by_stim = [
         'natural_movie_one',
@@ -813,13 +998,18 @@ def build_multiple_datasets(
         'three_session_C2'
     ]
     print 'Pulling cells by their RFs and stimulus: %s.' % filter_by_stim
-    all_data_dicts = []
-    for q in queries:
-        it_query = data_db.get_cells_all_data_by_rf_and_stimuli(
-            rfs=q,
-            stimuli=filter_by_stim,
+    all_data_dicts = query_neurons_rfs(
+        queries=queries,
+        filter_by_stim=filter_by_stim,
+        sessions=sessions)
+    # Check if a weight sharing is needed
+    dataset_method = declare_allen_datasets()[template_dataset]()
+    if dataset_method['weight_sharing']:
+        gridded_rfs = create_grid_queries(all_data_dicts[0])
+        all_data_dicts = query_neurons_rfs(
+            queries=gridded_rfs,
+            filter_by_stim=filter_by_stim,
             sessions=sessions)
-        all_data_dicts += [it_query]
 
     # Prepare directories
     model_directory = os.path.join(
@@ -835,88 +1025,58 @@ def build_multiple_datasets(
 
     # Loop through each query and build all possible datasets with template
     ts = get_dt_stamp()
-    da = declare_allen_datasets()
     session_name = int(''.join(
         [random.choice(string.digits) for k in range(N//2)]))
-    for q in all_data_dicts:
+    for ni, q in enumerate(all_data_dicts):
         meta_dir = os.path.join(
             main_config.multi_exps,
-            '%s_cells_%s' % (len(q[0]), ts))
+            '%s_cells_%s' % (len(q), ts))
         make_dir(meta_dir)
-        for idx, d in enumerate(q[0]):
-            print 'Preparing dataset %s/%s in package %s/%s.' % (
-                idx,
-                len(q[0]),
-                len(q),
+        if dataset_method['weight_sharing']:
+            print 'Preparing dataset %s/%s.' % (
+                ni,
                 len(all_data_dicts))
-
-            # 1. Prepare dataset
-            dataset_method = da[template_dataset]()
-            rf_query = dataset_method['rf_query'][0]
-            rf_query['rf_coordinate_range']['x_min'] = np.floor(
-                d['on_center_x'])
-            rf_query['rf_coordinate_range']['x_max'] = np.floor(
-                d['on_center_x']) + 1
-            rf_query['rf_coordinate_range']['y_min'] = np.floor(
-                d['on_center_y'])
-            rf_query['rf_coordinate_range']['y_max'] = np.floor(
-                d['on_center_y']) + 1
-            rf_query['structure'] = d[
-                'structure']
-            rf_query['cre_line'] = d[
-                'cre_line']
-            rf_query['imaging_depth'] = d[
-                'imaging_depth']
-            dataset_method['rf_query'][0] = rf_query
-            dataset_name = '%s_%s_%s_%s_%s_%s' % (
-                d['structure'],
-                d['cre_line'],
-                d['imaging_depth'],
-                int(rf_query['rf_coordinate_range']['x_min']*100),
-                int(rf_query['rf_coordinate_range']['y_min']*100),
-                idx)
-            print 'Creating dataset %s.' % dataset_name
-            method_name = ''.join(
-                random.choice(
-                    string.ascii_uppercase + string.ascii_lowercase)
-                for _ in range(N))
-            method_name = this_dataset_name + method_name
-            dataset_method['experiment_name'] = method_name
-            dataset_method['dataset_name'] = dataset_name
-            dataset_method['cell_specimen_id'] = d['cell_specimen_id']
-
-            # 2. Encode dataset
-            encode_datasets.main(dataset_method)
-
-            # 3. Prepare models in CC-BP
-            new_model_dir = os.path.join(
-                model_directory,
-                method_name)
-            make_dir(new_model_dir)
-            for f in model_templates:
-                dest = os.path.join(
-                    new_model_dir,
-                    f.split(os.path.sep)[-1])
-                shutil.copy(f, dest)
-
-            # 4. Add dataset to CC-BP database
-            it_exp = exps[template_experiment]()
-            it_exp['experiment_name'] = [method_name]  # [dataset_name]
-            it_exp['dataset'] = [method_name]  # [dataset_name]
-            it_exp['experiment_link'] = [session_name]
-            it_exp = tweak_params(it_exp)
-            np.savez(
-                os.path.join(meta_dir, dataset_name),
-                it_exp=it_exp,
+            rf_grid = rf_extents(q)
+            rf_dict = q[0]
+            rf_dict['on_center_x_max'] = rf_grid['x_max']
+            rf_dict['on_center_y_max'] = rf_grid['y_max']
+            rf_dict['on_center_x'] = rf_grid['x_min']
+            rf_dict['on_center_y'] = rf_grid['y_min']
+            process_dataset(
                 dataset_method=dataset_method,
-                rf_data=d)
-            prep_exp(it_exp, db_config)
-
-            # 5. Add the experiment method
-            add_experiment(
-                experiment_file,
-                main_config.exp_method_template,
-                method_name)
+                rf_dict=rf_dict,
+                this_dataset_name=this_dataset_name,
+                model_directory=model_directory,
+                model_templates=model_templates,
+                exps=exps,
+                template_experiment=template_experiment,
+                session_name=session_name,
+                meta_dir=meta_dir,
+                db_config=db_config,
+                experiment_file=experiment_file,
+                main_config=main_config,
+                idx=0)
+        else:
+            for idx, rf_dict in enumerate(q):
+                print 'Preparing dataset %s/%s in package %s/%s.' % (
+                    idx,
+                    len(q),
+                    ni,
+                    len(all_data_dicts))
+                process_dataset(
+                    dataset_method=dataset_method,
+                    rf_dict=rf_dict,
+                    this_dataset_name=this_dataset_name,
+                    model_directory=model_directory,
+                    model_templates=model_templates,
+                    exps=exps,
+                    template_experiment=template_experiment,
+                    session_name=session_name,
+                    meta_dir=meta_dir,
+                    db_config=db_config,
+                    experiment_file=experiment_file,
+                    main_config=main_config,
+                    idx=idx)
 
 
 if __name__ == '__main__':
