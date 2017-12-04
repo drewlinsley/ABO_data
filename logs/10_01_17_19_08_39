@@ -1,0 +1,4 @@
+I1616 2017-10-01 19:08:39.005416 db/create_db.py:250 Log written to /home/drew/Documents/Allen_Brain_Observatory/logs/10_01_17_19_08_39
+I1616 2017-10-01 19:08:39.493351 db/create_db.py:253 Initialized DB.
+I1616 2017-10-01 19:08:40.820641 db/create_db.py:225 Updating DB with experiment containers.
+I1616 2017-10-01 23:23:37.281544 db/create_db.py:241 Saved data to: Recorded_cells_list_for_db_10_01_17_19_08_39.pkl.

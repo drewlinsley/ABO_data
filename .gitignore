@@ -1,0 +1,65 @@
+# testing files #
+################
+*.dat
+*.pyc
+*.py~
+Recorded_cells_list_for_db_10_03_17_09_37_17.pkl
+credentials.py
+
+# Data #
+###############
+*.pkl
+*.json
+
+# TF savers #
+###############
+save_trained_HSM
+save_trained_HSM.meta
+
+# folders #
+#################
+Allen_data_170513/
+boc/
+multi_cell_exps/
+
+# Compiled source #
+###################
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+*.egg-info
+dist/
+
+# Packages #
+############
+# it's better to unpack these files and commit the raw source
+# git has its own built in compression methods
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Logs and databases #
+######################
+*.log
+*.sql
+*.sqlite
+db/credentials.py
+Allen_data_*
+
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

@@ -1,0 +1,3 @@
+I3648 2017-09-12 13:23:07.183823 db/create_db.py:234 Log written to /home/drew/Documents/Allen_Brain_Observatory/logs/09_12_17_13_23_07
+I3648 2017-09-12 13:23:07.739835 db/create_db.py:237 Initialized DB.
+I3648 2017-09-12 13:23:08.959605 db/create_db.py:210 Processing experiment containers.

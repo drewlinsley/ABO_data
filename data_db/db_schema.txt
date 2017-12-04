@@ -1,0 +1,10 @@
+DROP TABLE IF EXISTS cells
+DROP TABLE IF EXISTS rf
+
+CREATE TABLE cells (_id bigserial primary key, cell_specimen_id int, session varchar, drifting_gratings boolean, locally_sparse_noise boolean, locally_sparse_noise_four_deg boolean, locally_sparse_noise_eight_deg boolean, natural_movie_one boolean, natural_movie_two boolean, natural_movie_three boolean, natural_scenes boolean, spontaneous boolean, static_gratings boolean, cell_output_npy varchar)
+
+CREATE TABLE rf (_id bigserial primary key, cell_specimen_id int, lsn_name varchar, experiment_container_id int, found_on boolean, found_off boolean, alpha float, number_of_shuffles int, on_distance float, on_area float, on_overlap float, on_height float, on_center_x float, on_center_y float, on_width_x float, on_width_y float, on_rotation float, off_distance float, off_area float, off_overlap float, off_height float, off_center_x float, off_center_y float, off_width_x float, off_width_y float, off_rotation float, cre_line varchar, structure varchar, age int, imaging_depth int)
+
+ALTER TABLE cells ADD CONSTRAINT unique_cells UNIQUE (cell_specimen_id, session , drifting_gratings , locally_sparse_noise , locally_sparse_noise_four_deg , locally_sparse_noise_eight_deg , natural_movie_one , natural_movie_two , natural_movie_three , natural_scenes , spontaneous , static_gratings , cell_output_npy)
+
+ALTER TABLE rf ADD CONSTRAINT unique_rfs UNIQUE (cell_specimen_id , lsn_name , experiment_container_id , found_on , found_off , alpha , number_of_shuffles , on_distance , on_area , on_overlap , on_height , on_center_x , on_center_y , on_width_x , on_width_y , on_rotation , off_distance , off_area , off_overlap, off_height , off_center_x , off_center_y , off_width_x , off_width_y , off_rotation , cre_line , structure , imaging_depth)
