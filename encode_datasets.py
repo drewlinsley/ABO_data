@@ -16,6 +16,7 @@ from sklearn import linear_model
 from declare_datasets_loop import declare_allen_datasets as dad
 from allen_config import Allen_Brain_Observatory_Config as Config
 from allensdk.brain_observatory import stimulus_info
+from utils.py_utils import flatten_list
 try:
     from ops import helper_funcs, deconvolve
 except:
@@ -140,7 +141,8 @@ def process_body(
         stimuli_key,
         neural_key,
         deconv,
-        all_stimuli=None):
+        all_stimuli=None,
+        proc_stimuli=None):
     """Process cell data body function."""
     df = {}
     cell_data = load_cell_meta(d)
@@ -154,22 +156,42 @@ def process_body(
     stim_table = stim_table['stim_table']
 
     # Stimuli
-    # raw_stimuli = all_stimuli[cell_data['stim_template'].item()]['raw']
     df['stimulus_name'] = cell_data['stim_template'].item()
-    # df['raw_stimuli'] = raw_stimuli
-    proc_stimuli = all_stimuli[cell_data['stim_template'].item()]['processed']
-    if exp_dict['st_conv']:
-        timesteps = len(
-            range(exp_dict['neural_delay'][0], exp_dict['neural_delay'][1]))
-        st_stimuli = []
-        for idx in range(len(proc_stimuli)):
-            st_stimuli += [
-                proc_stimuli[x] for x in range(idx, idx + timesteps)
-                ]
-        import ipdb;ipdb.set_trace()
-        df['proc_stimuli'] = np.asarray(st_stimuli)
+    if proc_stimuli:
+        proc_stimuli = all_stimuli[df['stimulus_name']]['processed']
+        if exp_dict['st_conv']:
+            timesteps = len(
+                range(
+                    exp_dict['neural_delay'][0], exp_dict['neural_delay'][1]))
+            stim_len = len(proc_stimuli)
+            st_array = np.zeros((
+                    stim_len,
+                    timesteps,
+                    proc_stimuli.shape[1],
+                    proc_stimuli.shape[2],
+                    proc_stimuli.shape[3]),
+                dtype=np.float32)
+            for idx in tqdm(
+                    range(stim_len),
+                    desc='Processing spatiotemporal array'):
+                count = 0
+                if (idx + timesteps) >= stim_len:
+                    ep = idx + (stim_len - idx)  # How many can we add.
+                    for x in xrange(idx, ep):
+                        st_array[idx, count, :, :, :] = proc_stimuli[x]
+                        count += 1
+                    for x in xrange(timesteps - (stim_len - idx)):
+                        st_array[idx, count, :, :, :] = proc_stimuli[idx]
+                        count += 1
+                else:
+                    for x in xrange(idx, idx + timesteps):
+                        st_array[idx, count, :, :, :] = proc_stimuli[x]
+                        count += 1
+            df['proc_stimuli'] = st_array  # TODO: OPTIMIZE
+        else:
+            df['proc_stimuli'] = proc_stimuli
     else:
-        df['proc_stimuli'] = proc_stimuli
+        df['proc_stimuli'] = None
 
     # Neural data
     neural_data = load_data(
@@ -199,7 +221,6 @@ def process_body(
         neural_data_trimmed = np.zeros((
             len(slice_inds),
             len(stim_table[:, 1])))
-        print 'Averaging signal with %s events.' % len(slice_inds)
         for idx in range(len(slice_inds)):
             it_stim_table_idx = stim_table[:, 1] + slice_inds[idx]
             neural_data_trimmed[idx] = neural_data[it_stim_table_idx]
@@ -207,7 +228,7 @@ def process_body(
         stim_table_idx = stim_table[:, 1] + slice_inds[0]
         if exp_dict['st_conv']:
             # Use the list of neural events for a spatiotemporal model
-            neural_data_trimmed = [neural_data_trimmed]
+            neural_data_trimmed = neural_data_trimmed.transpose()
         else:
             # Average across neural events
             neural_data_trimmed = neural_data_trimmed.mean(0)
@@ -217,6 +238,8 @@ def process_body(
         stim_table_idx = stim_table[:, 1] + exp_dict['neural_delay']
         neural_data_trimmed = neural_data[stim_table_idx]
     if exp_dict['detrend']:
+        assert not exp_dict['st_conv'],\
+            'Detrending not implemented for ST data.'
         regr = linear_model.LinearRegression()
         model = regr.fit(
             np.arange(len(neural_data_trimmed)).reshape(-1, 1),
@@ -423,19 +446,39 @@ def process_cell_data(
     # Variables
     key_list = []
     output_data = []
-    for d in tqdm(data_dicts, total=len(data_dicts), desc='Preparing data'):
-        df = process_body(
-            d=d,
-            exp_dict=exp_dict,
-            stimuli_key=stimuli_key,
-            neural_key=neural_key,
-            deconv=deconv,
-            all_stimuli=all_stimuli)
+    stim_names = []
+    for idx, d in tqdm(
+            enumerate(data_dicts),
+            total=len(data_dicts),
+            desc='Preparing data'):
+        it_stim_name = load_cell_meta(d)['stim_template'].item()
+        if it_stim_name not in stim_names:
+            # Only prepare stimuli once
+            df = process_body(
+                d=d,
+                exp_dict=exp_dict,
+                stimuli_key=stimuli_key,
+                neural_key=neural_key,
+                deconv=deconv,
+                all_stimuli=all_stimuli,
+                proc_stimuli=True)
+            stim_names += [it_stim_name]
+        else:
+            df = process_body(
+                d=d,
+                exp_dict=exp_dict,
+                stimuli_key=stimuli_key,
+                neural_key=neural_key,
+                deconv=deconv,
+                all_stimuli=all_stimuli,
+                proc_stimuli=False)
         output_data += [df]
         it_check = [k for k, v in df.iteritems() if v is not None]
         key_list += [it_check]
         del df
         gc.collect()
+    # Make sure key_list is flat
+    key_list = flatten_list(key_list)
     return output_data, key_list
 
 
@@ -522,7 +565,6 @@ def load_npzs(
         ROImasks = {}
         images = {}
         cell_specimen_ids = {}
-        import ipdb;ipdb.set_trace()
         for stim in zip(unique_stimuli):
             stim = stim[0]
             labels[stim] = []
@@ -531,9 +573,12 @@ def load_npzs(
             cell_specimen_ids[stim] = []
             for d, rd in zip(output_data, data_dicts):
                 if d['stimulus_name'] == stim:
-                    labels[stim] += [d['label'][:, None]]
+                    # Concatenate additional cells across the 2nd dimension
+                    labels[stim] += [np.expand_dims(d['label'], axis=1)]
                     ROImasks[stim] += [np.expand_dims(d['ROImask'], axis=0)]
-                    images[stim] += [d['image']]
+                    if d['image'] is not None:
+                        # TODO: Check that neurons and stimuli are aligned.
+                        images[stim] += [d['image']]
                     cell_specimen_ids[stim] += [d['cell_specimen_id']]
 
         # Process dicts for cells
@@ -557,9 +602,13 @@ def load_npzs(
             for cell_count, cell in enumerate(unique_cells):
                 cell_ids = np.where(cells == cell)[0][:cell_floor]
                 for cell_it, ci in enumerate(cell_ids):
+                    if exp_dict['st_conv']:
+                        it_images = images[stim][0]
+                    else:
+                        it_images = images[stim][ci]
                     if cell_it == 0:
                         cell_labels = labels[stim][ci]
-                        cell_images = images[stim][ci]
+                        cell_images = it_images
                         cell_ROImasks = ROImasks[stim][ci]
                         cell_events = np.arange(len(cell_labels))
                         cell_repeats = np.ones(len(cell_labels)) * cell_it
@@ -572,7 +621,7 @@ def load_npzs(
                         cell_images = np.concatenate(
                             (
                                 cell_images,
-                                images[stim][ci]),
+                                it_images),
                             axis=0)
                         cell_events = np.concatenate(
                             (
@@ -667,8 +716,6 @@ def load_npzs(
             }]
 
     # Concatenate data into equal-sized lists
-    import ipdb;ipdb.set_trace()
-    # TODO: FIX FOR SPATIOTEMPORAL DATA
     event_dict = []
     for d in output_data:
         ref_length = d['image'].shape[0]
@@ -701,7 +748,7 @@ def create_example(data_dict, feature_types):
         else:
             it_feature_type = feature_types[k]
         if it_feature_type == 'float':
-            tf_dict[k] = float_feature(v)
+            tf_dict[k] = float_feature(v.ravel())
         elif it_feature_type == 'int64':
             tf_dict[k] = int64_feature(v)
         elif it_feature_type == 'string':

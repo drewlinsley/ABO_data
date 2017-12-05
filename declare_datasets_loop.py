@@ -68,8 +68,8 @@ def create_grid_queries(all_data_dicts, smod=2):
         rf_x += [dat['on_center_x']]
 
     # Get 95th percentile x and y width
-    y_width = int(np.ceil(np.percentile(rf_width_y, 95)))
-    x_width = int(np.ceil(np.percentile(rf_width_x, 95)))
+    y_width = 100.  # int(np.ceil(np.percentile(rf_width_y, 95)))
+    x_width = 100.  # int(np.ceil(np.percentile(rf_width_x, 95)))n
 
     # Stride of the neuron bins
     y_stride = int(y_width/smod)
@@ -807,7 +807,7 @@ class declare_allen_datasets():
         exp_dict = self.template_dataset()
         exp_dict = self.add_globals(exp_dict)
         exp_dict['experiment_name'] = 'ALLEN_st_cells_1_movies'
-        exp_dict['only_process_n'] = 1
+        exp_dict['only_process_n'] = None  # MICHELE
         exp_dict['randomize_selection'] = True
         exp_dict['reference_image_key'] = {'proc_stimuli': 'image'}
         exp_dict['reference_label_key'] = {'neural_trace_trimmed': 'label'}
@@ -834,7 +834,7 @@ class declare_allen_datasets():
             }
         }
         exp_dict['neural_delay'] = [8, 11]  # MS delay * 30fps for neural data
-        exp_dict['slice_frames'] = 5
+        exp_dict['slice_frames'] = 5  # MICHELE
         exp_dict['st_conv'] = len(
             range(exp_dict['neural_delay'][0], exp_dict['neural_delay'][1]))
         exp_dict['cc_repo_vars'] = {
@@ -1010,6 +1010,8 @@ def build_multiple_datasets(
             queries=gridded_rfs,
             filter_by_stim=filter_by_stim,
             sessions=sessions)
+        all_data_dicts = [
+            x for x in all_data_dicts if x != []]  # Filter empties.
 
     # Prepare directories
     model_directory = os.path.join(
@@ -1028,6 +1030,7 @@ def build_multiple_datasets(
     session_name = int(''.join(
         [random.choice(string.digits) for k in range(N//2)]))
     for ni, q in enumerate(all_data_dicts):
+        assert len(q), 'Cell dictionary is empty.'
         meta_dir = os.path.join(
             main_config.multi_exps,
             '%s_cells_%s' % (len(q), ts))
@@ -1055,7 +1058,7 @@ def build_multiple_datasets(
                 db_config=db_config,
                 experiment_file=experiment_file,
                 main_config=main_config,
-                idx=0)
+                idx=ni)
         else:
             for idx, rf_dict in enumerate(q):
                 print 'Preparing dataset %s/%s in package %s/%s.' % (
