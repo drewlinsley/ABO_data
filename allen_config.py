@@ -13,8 +13,8 @@ class Allen_Brain_Observatory_Config():
         elif socket.gethostname() == 'x9':
             self.host = 'x9'
             self.repo_PATH = '/home/drew/Documents/abo_data'
-            # self.cc_path = '/home/drew/Documents/contextual_circuit_bp'
-            self.cc_path = '/media/data_cifs/cluster_projects/contextual_circuit_bp'
+            self.cc_path = '/home/drew/Documents/contextual_circuit_bp'
+            # self.cc_path = '/media/data_cifs/cluster_projects/contextual_circuit_bp'
         else:
             raise Exception(
                 'Unknown Host : Please add your directory at get_host_path()')
@@ -26,7 +26,7 @@ class Allen_Brain_Observatory_Config():
         self.log_dir = 'logs'
         self.DB_loc = 'DataForTrain'
         self.cc_template = 'template_cc_model.txt'
-        self.exp_method_template = 'exp_method_template.txt'
+        self.exp_method_template_dir = 'CCBP_experiment_templates'
         self.tmp_pachaya_folder = 'pachaya_scripts'  # Holding old files here
         self.data_loc = os.path.join(
             '/media',

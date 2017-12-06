@@ -1,0 +1,22 @@
+
+    def RANDALPHA(self):
+        """EDIT ST multi-experiment creation."""
+        model_folder = 'EDIT'
+        exp = {
+            'experiment_name': ['EDIT'],
+            'lr': [3e-4],
+            'loss_function': ['pearson'],
+            'optimizer': ['adam'],
+            'model_struct': [
+                os.path.join(model_folder, 'conv3d'),
+            ],
+            'dataset': ['EDIT']
+        }
+        exp = self.add_globals(exp)  # Add globals to the experiment'
+        exp['data_augmentations'] = ['resize']
+        exp['epochs'] = 50
+        exp['validation_iters'] = 150
+        exp['num_validation_evals'] = 20
+        exp['batch_size'] = 16  # Train/val batch size.
+        exp['normalize_labels'] = 'zscore'
+        return exp

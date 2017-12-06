@@ -1097,7 +1097,8 @@ def package_dataset(
         raise RuntimeError('Other instructions are not yet implemented.')
 
     if len(data_dicts) == 0:
-        raise RuntimeError('Empty cell query.')
+        print 'No cells found in this query.'
+        return
 
     # # Filter cells satisfying only one condition (could be a subquery).
     # data_dicts = inclusive_cell_filter(

@@ -68,8 +68,8 @@ def create_grid_queries(all_data_dicts, smod=2):
         rf_x += [dat['on_center_x']]
 
     # Get 95th percentile x and y width
-    y_width = 100.  # int(np.ceil(np.percentile(rf_width_y, 95)))
-    x_width = 100.  # int(np.ceil(np.percentile(rf_width_x, 95)))n
+    y_width = int(np.ceil(np.percentile(rf_width_y, 95)))
+    x_width = int(np.ceil(np.percentile(rf_width_x, 95)))
 
     # Stride of the neuron bins
     y_stride = int(y_width/smod)
@@ -178,10 +178,11 @@ def hp_opt_dict():
         'optimizer_domain': 'optimizer',
         'lr_domain': 'lr',
         'timesteps_domain': 'timesteps',
-        'tuning_u_domain': 'tuning_u',
-        'tuning_t_domain': 'tuning_t',
-        'tuning_q_domain': 'tuning_q',
-        'tuning_p_domain': 'tuning_p',
+        'u_t_domain': 'tuning_u',
+        't_t_domain': 'tuning_t',
+        'q_t_domain': 'tuning_q',
+        'p_t_domain': 'tuning_p',
+        'filter_size_domain': 'filter_size',
     }
 
 
@@ -296,11 +297,14 @@ class db(object):
             'lr': ['experiments', 'hp_combo_history'],
             'dataset': ['experiments', 'hp_combo_history'],
             'regularization_type_domain': ['experiments', 'hp_combo_history'],
-            'regularization_strength_domain': ['experiments', 'hp_combo_history'],
+            'regularization_strength_domain': [
+                'experiments', 'hp_combo_history'],
             'optimizer_domain': ['experiments', 'hp_combo_history'],
             'lr_domain': ['experiments', 'hp_combo_history'],
             'timesteps': ['experiments', 'hp_combo_history'],
             'timesteps_domain': ['experiments', 'hp_combo_history'],
+            'filter_size': ['experiments', 'hp_combo_history'],
+            'filter_size_domain': ['experiments', 'hp_combo_history'],
             'u_t_domain': ['experiments', 'hp_combo_history'],
             'q_t_domain': ['experiments', 'hp_combo_history'],
             't_t_domain': ['experiments', 'hp_combo_history'],
@@ -310,10 +314,12 @@ class db(object):
             't_t': ['experiments', 'hp_combo_history'],
             'p_t': ['experiments', 'hp_combo_history'],
             'hp_optim': ['experiments', 'hp_combo_history'],
-            'hp_multiple': ['experiments', 'hp_combo_history'],
+            'hp_max_studies': ['experiments', 'hp_combo_history'],
             'hp_current_iteration': ['experiments', 'hp_combo_history'],
+            'normalize_labels': ['experiments', 'hp_combo_history'],
             'experiment_iteration': ['experiments', 'hp_combo_history']
         }
+
 
     def fix_namedict(self, namedict, table):
         """Insert empty fields in dictionary where keys are absent."""
@@ -357,83 +363,161 @@ class db(object):
                     label, self.cur.statusmessage
                     )
 
-    def populate_db(self, namedict):
+    def populate_db(self, namedict, experiment_link=False):
         """
         Add a combination of parameter_dict to the db.
         ::
         experiment_name: name of experiment to add
-        parent_experiment: linking a child (e.g. clickme) -> parent (ILSVRC12)
+        experiment_link: linking a child (e.g. clickme) -> parent (ILSVRC12)
         """
         namedict = self.fix_namedict(namedict, 'experiments')
-        self.cur.executemany(
-            """
-            INSERT INTO experiments
-            (
-            experiment_name,
-            model_struct,
-            loss_function,
-            regularization_type,
-            regularization_strength,
-            optimizer,
-            lr,
-            dataset,
-            regularization_type_domain,
-            regularization_strength_domain,
-            optimizer_domain,
-            lr_domain,
-            timesteps,
-            timesteps_domain,
-            u_t_domain,
-            q_t_domain,
-            t_t_domain,
-            p_t_domain,
-            u_t,
-            q_t,
-            t_t,
-            p_t,
-            hp_optim,
-            hp_multiple,
-            hp_current_iteration,
-            experiment_iteration
-            )
-            VALUES
-            (
-            %(experiment_name)s,
-            %(model_struct)s,
-            %(loss_function)s,
-            %(regularization_type)s,
-            %(regularization_strength)s,
-            %(optimizer)s,
-            %(lr)s,
-            %(dataset)s,
-            %(regularization_type_domain)s,
-            %(regularization_strength_domain)s,
-            %(optimizer_domain)s,
-            %(lr_domain)s,
-            %(timesteps)s,
-            %(timesteps_domain)s,
-            %(u_t_domain)s,
-            %(q_t_domain)s,
-            %(t_t_domain)s,
-            %(p_t_domain)s,
-            %(u_t)s,
-            %(q_t)s,
-            %(t_t)s,
-            %(p_t)s,
-            %(hp_optim)s,
-            %(hp_multiple)s,
-            %(hp_current_iteration)s,
-            %(experiment_iteration)s
-            )
-            """,
-            namedict)
-        self.cur.execute(
-            """
-            UPDATE experiments
-            SET experiment_link=_id
-            WHERE experiment_name=%(experiment_name)s
-            """,
-            namedict[0])
+        if not experiment_link:
+            self.cur.executemany(
+                """
+                INSERT INTO experiments
+                (
+                experiment_name,
+                model_struct,
+                loss_function,
+                regularization_type,
+                regularization_strength,
+                optimizer,
+                lr,
+                dataset,
+                regularization_type_domain,
+                regularization_strength_domain,
+                optimizer_domain,
+                lr_domain,
+                timesteps,
+                timesteps_domain,
+                u_t_domain,
+                q_t_domain,
+                t_t_domain,
+                p_t_domain,
+                u_t,
+                q_t,
+                t_t,
+                p_t,
+                hp_optim,
+                hp_max_studies,
+                hp_current_iteration,
+                experiment_iteration,
+                normalize_labels,
+                filter_size,
+                filter_size_domain
+                )
+                VALUES
+                (
+                %(experiment_name)s,
+                %(model_struct)s,
+                %(loss_function)s,
+                %(regularization_type)s,
+                %(regularization_strength)s,
+                %(optimizer)s,
+                %(lr)s,
+                %(dataset)s,
+                %(regularization_type_domain)s,
+                %(regularization_strength_domain)s,
+                %(optimizer_domain)s,
+                %(lr_domain)s,
+                %(timesteps)s,
+                %(timesteps_domain)s,
+                %(u_t_domain)s,
+                %(q_t_domain)s,
+                %(t_t_domain)s,
+                %(p_t_domain)s,
+                %(u_t)s,
+                %(q_t)s,
+                %(t_t)s,
+                %(p_t)s,
+                %(hp_optim)s,
+                %(hp_max_studies)s,
+                %(hp_current_iteration)s,
+                %(experiment_iteration)s,
+                %(normalize_labels)s,
+                %(filter_size)s,
+                %(filter_size_domain)s
+                )
+                """,
+                namedict)
+            self.cur.execute(
+                """
+                UPDATE experiments
+                SET experiment_link=_id
+                WHERE experiment_name=%(experiment_name)s
+                """,
+                namedict[0])
+        else:
+            self.cur.executemany(
+                """
+                INSERT INTO experiments
+                (
+                experiment_name,
+                model_struct,
+                loss_function,
+                regularization_type,
+                regularization_strength,
+                optimizer,
+                lr,
+                dataset,
+                regularization_type_domain,
+                regularization_strength_domain,
+                optimizer_domain,
+                lr_domain,
+                timesteps,
+                timesteps_domain,
+                u_t_domain,
+                q_t_domain,
+                t_t_domain,
+                p_t_domain,
+                u_t,
+                q_t,
+                t_t,
+                p_t,
+                hp_optim,
+                hp_max_studies,
+                hp_current_iteration,
+                experiment_iteration,
+                normalize_labels,
+                filter_size,
+                filter_size_domain,
+                experiment_link
+                )
+                VALUES
+                (
+                %(experiment_name)s,
+                %(model_struct)s,
+                %(loss_function)s,
+                %(regularization_type)s,
+                %(regularization_strength)s,
+                %(optimizer)s,
+                %(lr)s,
+                %(dataset)s,
+                %(regularization_type_domain)s,
+                %(regularization_strength_domain)s,
+                %(optimizer_domain)s,
+                %(lr_domain)s,
+                %(timesteps)s,
+                %(timesteps_domain)s,
+                %(u_t_domain)s,
+                %(q_t_domain)s,
+                %(t_t_domain)s,
+                %(p_t_domain)s,
+                %(u_t)s,
+                %(q_t)s,
+                %(t_t)s,
+                %(p_t)s,
+                %(hp_optim)s,
+                %(hp_max_studies)s,
+                %(hp_current_iteration)s,
+                %(experiment_iteration)s,
+                %(normalize_labels)s,
+                %(filter_size)s,
+                %(filter_size_domain)s,
+                %(experiment_link)s
+                )
+                """,
+                namedict)
         if self.status_message:
             self.return_status('INSERT')
 
@@ -862,7 +946,8 @@ def process_dataset(
         experiment_file,
         main_config,
         N=16,
-        idx=0):
+        idx=0,
+        exp_method_template=None):
 
     # 1. Prepare dataset
     x_min = np.floor(rf_dict['on_center_x'])
@@ -935,7 +1020,7 @@ def process_dataset(
     # 5. Add the experiment method
     add_experiment(
         experiment_file,
-        main_config.exp_method_template,
+        exp_method_template,
         method_name)
 
 
@@ -961,8 +1046,8 @@ def rf_extents(rf_dict):
 
 def build_multiple_datasets(
         template_dataset='ALLEN_st_cells_1_movies',
-        template_experiment='ALLEN_selected_cells_1',
-        model_structs='ALLEN_selected_cells_1',
+        template_experiment='ALLEN_st_selected_cells_1',
+        model_structs='ALLEN_st_selected_cells_1',
         this_dataset_name='MULTIALLEN_ws_st_',
         N=16):
     """Main function for creating multiple datasets of cells."""
@@ -1013,6 +1098,18 @@ def build_multiple_datasets(
         all_data_dicts = [
             x for x in all_data_dicts if x != []]  # Filter empties.
 
+    # Declare the experiment template
+    if dataset_method['st_conv']:
+        # Dynamic dataset
+        exp_method_template = os.path.join(
+            main_config.exp_method_template_dir,
+            '3d_exp_method_template.txt')
+    else:
+        # Static dataset
+        exp_method_template = os.path.join(
+            main_config.exp_method_template_dir,
+            '2d_exp_method_template.txt')
+
     # Prepare directories
     model_directory = os.path.join(
         main_config.cc_path,
@@ -1058,7 +1155,8 @@ def build_multiple_datasets(
                 db_config=db_config,
                 experiment_file=experiment_file,
                 main_config=main_config,
-                idx=ni)
+                idx=ni,
+                exp_method_template=exp_method_template)
         else:
             for idx, rf_dict in enumerate(q):
                 print 'Preparing dataset %s/%s in package %s/%s.' % (
@@ -1079,7 +1177,8 @@ def build_multiple_datasets(
                     db_config=db_config,
                     experiment_file=experiment_file,
                     main_config=main_config,
-                    idx=idx)
+                    idx=idx,
+                    exp_method_template=exp_method_template)
 
 
 if __name__ == '__main__':
