@@ -922,8 +922,8 @@ class declare_allen_datasets():
         exp_dict['st_conv'] = len(
             range(exp_dict['neural_delay'][0], exp_dict['neural_delay'][1]))
         exp_dict['cc_repo_vars'] = {
-                'output_size': [exp_dict['st_conv'], 1, 1],
-                'model_im_size': [exp_dict['st_conv'], 152, 304, 1],
+                'output_size': [1, None],  # None dimensions will be inferred from the data
+                'model_im_size': [152, 304, 1],  # [exp_dict['st_conv'], 152, 304, 1],
                 'loss_function': 'pearson',
                 'score_metric': 'pearson',
                 'preprocess': 'resize'
@@ -991,37 +991,38 @@ def process_dataset(
     dataset_method['cell_specimen_id'] = rf_dict['cell_specimen_id']
 
     # 2. Encode dataset
-    encode_datasets.main(dataset_method)
+    success = encode_datasets.main(dataset_method)
 
-    # 3. Prepare models in CC-BP
-    new_model_dir = os.path.join(
-        model_directory,
-        method_name)
-    make_dir(new_model_dir)
-    for f in model_templates:
-        dest = os.path.join(
-            new_model_dir,
-            f.split(os.path.sep)[-1])
-        shutil.copy(f, dest)
+    if success:
+        # 3. Prepare models in CC-BP
+        new_model_dir = os.path.join(
+            model_directory,
+            method_name)
+        make_dir(new_model_dir)
+        for f in model_templates:
+            dest = os.path.join(
+                new_model_dir,
+                f.split(os.path.sep)[-1])
+            shutil.copy(f, dest)
 
-    # 4. Add dataset to CC-BP database
-    it_exp = exps[template_experiment]()
-    it_exp['experiment_name'] = [method_name]  # [dataset_name]
-    it_exp['dataset'] = [method_name]  # [dataset_name]
-    it_exp['experiment_link'] = [session_name]
-    it_exp = tweak_params(it_exp)
-    np.savez(
-        os.path.join(meta_dir, dataset_name),
-        it_exp=it_exp,
-        dataset_method=dataset_method,
-        rf_data=rf_dict)
-    prep_exp(it_exp, db_config)
+        # 4. Add dataset to CC-BP database
+        it_exp = exps[template_experiment]()
+        it_exp['experiment_name'] = [method_name]  # [dataset_name]
+        it_exp['dataset'] = [method_name]  # [dataset_name]
+        it_exp['experiment_link'] = [session_name]
+        it_exp = tweak_params(it_exp)
+        np.savez(
+            os.path.join(meta_dir, dataset_name),
+            it_exp=it_exp,
+            dataset_method=dataset_method,
+            rf_data=rf_dict)
+        prep_exp(it_exp, db_config)
 
-    # 5. Add the experiment method
-    add_experiment(
-        experiment_file,
-        exp_method_template,
-        method_name)
+        # 5. Add the experiment method
+        add_experiment(
+            experiment_file,
+            exp_method_template,
+            method_name)
 
 
 def rf_extents(rf_dict):

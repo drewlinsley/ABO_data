@@ -227,8 +227,8 @@ def process_body(
         # Use the first event in stim_table as the triggering event
         stim_table_idx = stim_table[:, 1] + slice_inds[0]
         if exp_dict['st_conv']:
-            # Use the list of neural events for a spatiotemporal model
-            neural_data_trimmed = neural_data_trimmed.transpose()
+            # Take the final timestep of activity for a spatiotemporal model
+            neural_data_trimmed = neural_data_trimmed.transpose()[:, -1]
         else:
             # Average across neural events
             neural_data_trimmed = neural_data_trimmed.mean(0)
@@ -901,6 +901,12 @@ def prepare_data_for_tf_records(
                 if len(data_vol.shape) < 3:
                     means[imk] = np.mean(data_vol)
                     stds[imk] = np.std(data_vol)
+                elif len(data_vol.shape) > 3:
+                    num_dims = len(data_vol.shape)
+                    target_dims = 3
+                    dim_diff = num_dims - target_dims
+                    for midx in range(dim_diff):
+                        data_vol = np.mean(data_vol, axis=0)
                 else:
                     means[imk] = np.mean(data_vol, axis=0)
                     stds[imk] = 1.
@@ -1098,7 +1104,7 @@ def package_dataset(
 
     if len(data_dicts) == 0:
         print 'No cells found in this query.'
-        return
+        return False  # Unsucessful
 
     # # Filter cells satisfying only one condition (could be a subquery).
     # data_dicts = inclusive_cell_filter(
@@ -1125,6 +1131,12 @@ def package_dataset(
     for k, v in dataset_info['cc_repo_vars'].iteritems():
         cc_repo[k] = v
 
+    # Update output size where specified (with None)
+    if None in cc_repo['output_size']:
+        lab_shape = data_files[0]['label'].shape[-1]
+        rep_idx = cc_repo['output_size'].index(None)
+        cc_repo['output_size'][rep_idx] = lab_shape
+
     # Add tf_type entries for reference keys
     cat_dict = dict(
         dataset_info['reference_image_key'].items() +
@@ -1145,6 +1157,7 @@ def package_dataset(
         feature_types=dataset_info['tf_types'],
         cc_repo=cc_repo,
         config=config)
+    return True  # Successful
 
 
 def main(
@@ -1163,7 +1176,7 @@ def main(
             config.tf_record_output)
     da['deconv_dir'] = config.deconv_model_dir
     helper_funcs.make_dir(output_directory)
-    package_dataset(
+    return package_dataset(
         config=config,
         dataset_info=da,
         output_directory=output_directory,
