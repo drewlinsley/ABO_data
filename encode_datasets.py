@@ -907,6 +907,8 @@ def prepare_data_for_tf_records(
                     dim_diff = num_dims - target_dims
                     for midx in range(dim_diff):
                         data_vol = np.mean(data_vol, axis=0)
+                    means[imk] = np.mean(data_vol)
+                    stds[imk] = np.std(data_vol)
                 else:
                     means[imk] = np.mean(data_vol, axis=0)
                     stds[imk] = 1.
@@ -920,7 +922,7 @@ def prepare_data_for_tf_records(
             '%s_%s_means' % (set_name, k))
         num_its = float(len(v))
 
-        # WARNING:
+        # Store means in a dictionary
         means = {k: {
             'mean': v / num_its,
             'max': maxs[k],
@@ -1132,10 +1134,9 @@ def package_dataset(
         cc_repo[k] = v
 
     # Update output size where specified (with None)
-    if None in cc_repo['output_size']:
-        lab_shape = data_files[0]['label'].shape[-1]
-        rep_idx = cc_repo['output_size'].index(None)
-        cc_repo['output_size'][rep_idx] = lab_shape
+    lab_shape = data_files[0]['label'].shape[-1]
+    if lab_shape != cc_repo['output_size'][-1]:
+        cc_repo['output_size'][-1] = lab_shape
 
     # Add tf_type entries for reference keys
     cat_dict = dict(
