@@ -16,7 +16,7 @@
         }
         exp = self.add_globals(exp)  # Add globals to the experiment'
         exp['data_augmentations'] = ['resize']
-        exp['epochs'] = 50
+        exp['epochs'] = 100
         exp['validation_iters'] = 150
         exp['num_validation_evals'] = 20
         exp['batch_size'] = 16  # Train/val batch size.
