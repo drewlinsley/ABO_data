@@ -911,16 +911,21 @@ class declare_allen_datasets():
                 'label'
             ]
         # exp_dict['deconv_method'] = 'c2s'
+        # exp_dict['cv_split'] = {
+        #     'cv_split_single_stim': {
+        #         'target': 0,
+        #         'split': 0.9
+        #     }
+        # }
         exp_dict['cv_split'] = {
-            'cv_split_single_stim': {
-                'target': 0,
-                'split': 0.9
-            }
+                'split_on_stim': 'natural_movie_two'  # Specify train set
         }
         exp_dict['neural_delay'] = [8, 13]  # MS delay * 30fps for neural data
         exp_dict['slice_frames'] = 4  # MICHELE
         exp_dict['st_conv'] = len(
-            range(exp_dict['neural_delay'][0], exp_dict['neural_delay'][1]))
+            range(
+                exp_dict['neural_delay'][0],
+                exp_dict['neural_delay'][1]))
         exp_dict['cc_repo_vars'] = {
                 'output_size': [1, 1],
                 'model_im_size': [152, 304, 1],
@@ -1070,9 +1075,9 @@ def build_multiple_datasets(
                 'y_min': -10000,
                 'y_max': 10000,
             },
-            'cre_line': 'Scnn1a-Tg3-Cre',  # Nr5a1-Cre 'Cux2' # Layer 4 models
+            'cre_line': 'Cux2',  # Scnn1a-Tg3-Cre Nr5a1-Cre # Layer 4 models
             'structure': 'VISp',
-            # 'imaging_depth': 175 # Layer 2/3 models
+            'imaging_depth': 175  # Layer 2/3 models
             }]
     ]
     filter_by_stim = [

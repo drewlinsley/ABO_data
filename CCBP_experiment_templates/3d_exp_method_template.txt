@@ -16,9 +16,9 @@
         }
         exp = self.add_globals(exp)  # Add globals to the experiment'
         exp['data_augmentations'] = ['resize']
-        exp['epochs'] = 100
-        exp['validation_iters'] = 150
-        exp['num_validation_evals'] = 20
-        exp['batch_size'] = 16  # Train/val batch size.
-        exp['normalize_labels'] = 'zscore'
+        exp['epochs'] = 50
+        exp['validation_iters'] = 200  # Check validation every N steps of training
+        exp['num_validation_evals'] = 225  # Corresponds to a full movie
+        exp['batch_size'] = 10  # Train/val batch size.
+        exp['normalize_labels'] = 'zscore'  # Not currently implemented
         return exp
