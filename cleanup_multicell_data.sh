@@ -11,4 +11,3 @@ rm -rf models/structs/MULTIALLEN*
 cp experiments.py.backup experiments.py
 python prepare_experiments.py --initialize
 cd $abo_dir
-
