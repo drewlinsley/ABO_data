@@ -13,8 +13,8 @@ class Allen_Brain_Observatory_Config():
         elif socket.gethostname() == 'x9':
             self.host = 'x9'
             self.repo_PATH = '/home/drew/Documents/abo_data'
-            self.cc_path = '/home/drew/Documents/contextual_circuit_bp'
-            # self.cc_path = '/media/data_cifs/cluster_projects/contextual_circuit_bp'
+            # self.cc_path = '/home/drew/Documents/contextual_circuit_bp'
+            self.cc_path = '/media/data_cifs/cluster_projects/contextual_circuit_bp'
         else:
             raise Exception(
                 'Unknown Host : Please add your directory at get_host_path()')
