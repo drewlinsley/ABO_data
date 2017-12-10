@@ -13,8 +13,8 @@ class Allen_Brain_Observatory_Config():
         elif socket.gethostname() == 'x9':
             self.host = 'x9'
             self.repo_PATH = '/home/drew/Documents/abo_data'
-            # self.cc_path = '/home/drew/Documents/contextual_circuit_bp'
-            self.cc_path = '/media/data_cifs/cluster_projects/contextual_circuit_bp'
+            self.cc_path = '/home/drew/Documents/contextual_circuit_bp'
+            self.cluster_cc_path = '/media/data_cifs/cluster_projects/contextual_circuit_bp'
         else:
             raise Exception(
                 'Unknown Host : Please add your directory at get_host_path()')
@@ -72,7 +72,7 @@ class Allen_Brain_Observatory_Config():
         self.reshape_img_size_h = 31
         self.reshape_img_size_w = 31
         self.save_folder = 'DataForTrain/'
-        self.db_ssh_forward = False  # True
+        self.db_ssh_forward = False
 
         # Template for cc_bp repo data loading
         self.multi_exps = 'multi_cell_exps'

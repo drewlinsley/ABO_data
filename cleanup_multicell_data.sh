@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 abo_dir=/home/drew/Documents/abo_data
-# ccbp_dir=/home/drew/Documents/contextual_circuit_bp
-ccbp_dir=/media/data_cifs/cluster_projects/contextual_circuit_bp
+ccbp_dir=/home/drew/Documents/contextual_circuit_bp
+# ccbp_dir=/media/data_cifs/cluster_projects/contextual_circuit_bp
 
 cd $abo_dir
 rm -rf multi_cell_exps/*
@@ -12,3 +12,4 @@ rm -rf models/structs/MULTIALLEN*
 cp experiments.py.backup experiments.py
 python prepare_experiments.py --initialize
 cd $abo_dir
+

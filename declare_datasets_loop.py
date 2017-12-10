@@ -2,6 +2,7 @@
 import re
 import os
 import sys
+import math
 import shutil
 import encode_datasets
 import json
@@ -16,8 +17,10 @@ import itertools as it
 import pandas as pd
 from allen_config import Allen_Brain_Observatory_Config
 from data_db import data_db
+from data_db import credentials
 from glob import glob
 from datetime import datetime
+from argparse import ArgumentParser
 sshtunnel.DAEMON = True  # Prevent hanging process due to forward thread
 
 
@@ -97,7 +100,7 @@ def create_grid_queries(all_data_dicts, smod=2):
                     },
                     'cre_line': cre_line,
                     'structure': structure}]]
-    return queries
+    return queries, max([x_width, y_width])
 
 
 def make_dir(d):
@@ -186,30 +189,52 @@ def hp_opt_dict():
     }
 
 
-def prep_exp(experiment_dict, db_config):
+def prep_exp(
+        experiment_dict,
+        # db_config,
+        credentials,
+        cluster=False):
     """Prepare exps for contextual circuit repo."""
     if 'hp_optim' in experiment_dict.keys() and experiment_dict['hp_optim'] is not None:
         exp_combos = hp_optim_parameters(experiment_dict)
         # it_exp = tweak_params(it_exp)
     else:
         exp_combos = package_parameters(experiment_dict)
-    with db(db_config) as db_conn:
+    with allen_db(
+            # config=db_config,
+            cluster=cluster,
+            credentials=credentials) as db_conn:
         db_conn.populate_db(exp_combos)
 
 
-def query_hp_hist(experiment_name, db_config):
+def query_hp_hist(
+        experiment_name,
+        # db_config,
+        credentials,
+        cluster=False):
     """Get performance from contextual circuit repo."""
     perfs = None
-    with db(db_config) as db_conn:
+    with allen_db(
+            # config=db_config,
+            cluster=cluster,
+            credentials=credentials) as db_conn:
         perfs = db_conn.get_performance(experiment_name)
     return perfs
 
 
-def sel_exp_query(experiment_name, model, db_config):
+def sel_exp_query(
+        experiment_name,
+        model,
+        # db_config,
+        credentials,
+        cluster=False):
     """Get a select experiment/model combo."""
     perfs = None
     proc_model_name = '%%/%s' % model
-    with db(db_config) as db_conn:
+    with allen_db(
+            # config=db_config,
+            cluster=cluster,
+            credentials=credentials) as db_conn:
         perfs = db_conn.get_performance_by_model(
             experiment_name=experiment_name,
             model=proc_model_name)
@@ -227,18 +252,8 @@ def package_parameters(parameter_dict):
     return list(combos)
 
 
-def postgresql_credentials():
-    """Credentials for your psql DB."""
-    return {
-            'username': 'contextual_DCN',
-            'password': 'serrelab',
-            'database': 'contextual_DCN'
-           }
-
-
-def postgresql_connection(port=''):
+def prepare_connection(unpw, port=''):
     """Package DB credentials into a dictionary."""
-    unpw = postgresql_credentials()
     params = {
         'database': unpw['database'],
         'user': unpw['username'],
@@ -249,19 +264,47 @@ def postgresql_connection(port=''):
     return params
 
 
-class db(object):
-    def __init__(self, config):
+class allen_db(object):
+    def __init__(
+            self,
+            # config,
+            credentials,
+            cluster=False):
         """Init global variables."""
         self.status_message = False
-        self.db_schema_file = 'db/db_schema.txt'
+        self.db_schema_file = os.path.join('data_db','db_schema.txt')
+        self.cluster = cluster
         # Pass config -> this class
-        for k, v in config.items():
+        # self.add_attributes(config)
+        self.credentials = credentials
+
+    def add_attributes(self, x):
+        """Add attributes to the class."""
+        for k, v in x.items():
             setattr(self, k, v)
 
     def __enter__(self):
-        self.forward = None
-        self.pgsql_port = ''
-        pgsql_string = postgresql_connection(str(self.pgsql_port))
+        if self.cluster:
+            db_creds = prepare_connection(
+                self.credentials.cmbp_postgresql_credentials())
+            ssh_info = self.credentials.machine_credentials()
+            forward = sshtunnel.SSHTunnelForwarder(
+                ssh_info['ssh_address'],
+                ssh_username=ssh_info['username'],
+                ssh_password=ssh_info['password'],
+                remote_bind_address=('127.0.0.1', 5432))
+            forward.start()
+            self.forward = forward
+            self.pgsql_port = forward.local_bind_port
+            pgsql_string = prepare_connection(
+                self.credentials.cluster_cmbp_postgresql_credentials(),
+                str(self.pgsql_port))
+        else:
+            self.forward = None
+            self.pgsql_port = ''
+            pgsql_string = prepare_connection(
+                self.credentials.cmbp_postgresql_credentials(),
+                str(self.pgsql_port))
         self.pgsql_string = pgsql_string
         self.conn = psycopg2.connect(**pgsql_string)
         self.conn.set_isolation_level(
@@ -952,6 +995,8 @@ def process_dataset(
         main_config,
         N=16,
         idx=0,
+        cluster=False,
+        filter_size=None,  # NOT IMPLEMENTED YET
         exp_method_template=None):
 
     # 1. Prepare dataset
@@ -1021,7 +1066,10 @@ def process_dataset(
             it_exp=it_exp,
             dataset_method=dataset_method,
             rf_data=rf_dict)
-        prep_exp(it_exp, db_config)
+        prep_exp(
+            it_exp,
+            credentials=db_config,
+            cluster=cluster)
 
         # 5. Add the experiment method
         add_experiment(
@@ -1050,21 +1098,40 @@ def rf_extents(rf_dict):
     }
 
 
+def calculate_rf_size(rf_size, downsample):
+    """Calculate the appropriate filter size for the input image."""
+    h = 61  # 24" monitor
+    d = 10  # 10cm from the right eye
+    r = 1080 / downsample  # Vertical resolution
+    d_px = np.degrees(math.atan2(h / 2, d)) / (r / 2)
+    return rf_size * d_px
+
+
 def build_multiple_datasets(
         template_dataset='ALLEN_st_cells_1_movies',
         template_experiment='ALLEN_st_selected_cells_1',
         model_structs='ALLEN_st_selected_cells_1',
-        this_dataset_name='MULTIALLEN_ws_st_',
+        this_dataset_name='MULTIALLEN_ltwothree_st_',
+        cluster=False,
         N=16):
     """Main function for creating multiple datasets of cells."""
     main_config = Allen_Brain_Observatory_Config()
 
+    # Remove any BP-CC repos in the path
+    bp_cc_paths = [
+        x for x in sys.path if 'contextual' in x or 'Contextual' in x]
+    [sys.path.remove(x) for x in bp_cc_paths]
+
     # Append the BP-CC repo to this python path
-    sys.path.append(main_config.cc_path)
+    if cluster:
+        cc_path = main_config.cluster_cc_path
+    else:
+        cc_path = main_config.cc_path
+    sys.path.append(cc_path)
     import experiments  # from BP-CC
-    from db import credentials
+    # from db import credentials
     exps = experiments.experiments()
-    db_config = credentials.postgresql_connection()
+    # db_config = credentials.postgresql_connection()
 
     # Query all neurons for an experiment setup
     queries = [  # MICHELE: ADD LOOP HERE
@@ -1096,13 +1163,20 @@ def build_multiple_datasets(
     # Check if a weight sharing is needed
     dataset_method = declare_allen_datasets()[template_dataset]()
     if dataset_method['weight_sharing']:
-        gridded_rfs = create_grid_queries(all_data_dicts[0])
+        gridded_rfs, rf_size = create_grid_queries(all_data_dicts[0])
         all_data_dicts = query_neurons_rfs(
             queries=gridded_rfs,
             filter_by_stim=filter_by_stim,
             sessions=sessions)
         all_data_dicts = [
             x for x in all_data_dicts if x != []]  # Filter empties.
+        downsample = dataset_method['process_stimuli']['natural_scenes']['resize'][0] /\
+            dataset_method['cc_repo_vars']['model_im_size'][0]
+        filter_size = calculate_rf_size(
+            rf_size=rf_size,
+            downsample=downsample)
+    else:
+        filter_size = None
 
     # Declare the experiment template
     if dataset_method['st_conv']:
@@ -1118,7 +1192,7 @@ def build_multiple_datasets(
 
     # Prepare directories
     model_directory = os.path.join(
-        main_config.cc_path,
+        cc_path,
         'models',
         'structs')
     model_templates = glob(
@@ -1126,7 +1200,7 @@ def build_multiple_datasets(
             model_directory,
             model_structs,
             '*.py'))
-    experiment_file = os.path.join(main_config.cc_path, 'experiments.py')
+    experiment_file = os.path.join(cc_path, 'experiments.py')
 
     # Loop through each query and build all possible datasets with template
     ts = get_dt_stamp()
@@ -1158,10 +1232,12 @@ def build_multiple_datasets(
                 template_experiment=template_experiment,
                 session_name=session_name,
                 meta_dir=meta_dir,
-                db_config=db_config,
+                db_config=credentials,  # db_config,
                 experiment_file=experiment_file,
                 main_config=main_config,
                 idx=ni,
+                cluster=cluster,
+                filter_size=filter_size,
                 exp_method_template=exp_method_template)
         else:
             for idx, rf_dict in enumerate(q):
@@ -1180,12 +1256,21 @@ def build_multiple_datasets(
                     template_experiment=template_experiment,
                     session_name=session_name,
                     meta_dir=meta_dir,
-                    db_config=db_config,
+                    db_config=credentials,  # db_config,
                     experiment_file=experiment_file,
                     main_config=main_config,
                     idx=idx,
+                    cluster=cluster,
                     exp_method_template=exp_method_template)
 
 
 if __name__ == '__main__':
-    build_multiple_datasets()
+    parser = ArgumentParser()
+    parser.add_argument(
+        '--cluster',
+        dest='cluster',
+        action='store_true',
+        help='Run experiments on pnodes.')
+    args = parser.parse_args()
+    build_multiple_datasets(**vars(args))
+

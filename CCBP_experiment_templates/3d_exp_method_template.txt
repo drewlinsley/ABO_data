@@ -22,3 +22,4 @@
         exp['batch_size'] = 10  # Train/val batch size.
         exp['normalize_labels'] = 'zscore'  # Not currently implemented
         return exp
+
