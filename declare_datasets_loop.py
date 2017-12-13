@@ -9,6 +9,7 @@ import json
 import string
 import sshtunnel
 import random
+import threading
 import psycopg2
 import psycopg2.extras
 import psycopg2.extensions
@@ -285,8 +286,6 @@ class allen_db(object):
 
     def __enter__(self):
         if self.cluster:
-            db_creds = prepare_connection(
-                self.credentials.cmbp_postgresql_credentials())
             ssh_info = self.credentials.machine_credentials()
             forward = sshtunnel.SSHTunnelForwarder(
                 ssh_info['ssh_address'],
@@ -315,6 +314,8 @@ class allen_db(object):
 
     def __exit__(self, exc_type, exc_value, traceback):
         """Exit method."""
+        if self.forward is not None:
+            self.forward.close()
         if exc_type is not None:
             print exc_type, exc_value, traceback
             self.close_db(commit=False)
@@ -1272,6 +1273,8 @@ def build_multiple_datasets(
                     idx=idx,
                     cluster=cluster,
                     exp_method_template=exp_method_template)
+        threading.enumerate()
+        import ipdb;ipdb.set_trace()
 
 
 if __name__ == '__main__':
