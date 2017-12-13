@@ -764,8 +764,6 @@ class declare_allen_datasets():
     def globals(self):
         """Global variables for all datasets."""
         return {
-            'neural_delay': [8, 11],  # MS delay * 30fps for neural data
-            'st_conv': False,
             'tf_types': {  # How to store each in tfrecords
                 'neural_trace_trimmed': 'float',
                 'proc_stimuli': 'string',
@@ -804,8 +802,13 @@ class declare_allen_datasets():
                 # 'on_width_x': 'repeat',
                 # 'off_width_y': 'repeat'
             },
+            'neural_delay': [8, 11],  # MS delay * 30fps for neural data
+            'st_conv': False,
+            'timecourse': 'final',  # all mean or final; only for st_conv.
             'weight_sharing': True,
+            'grid_query': True,  # False = evaluate all neurons at once
             'detrend': False,
+            # TODO: Flag for switching between final vs vector neural activity
             'deconv_method': None,
             'randomize_selection': False,
             'warp_stimuli': False,
@@ -969,6 +972,7 @@ class declare_allen_datasets():
             range(
                 exp_dict['neural_delay'][0],
                 exp_dict['neural_delay'][1]))
+        exp_dict['grid_query'] = False  # False = evaluate all neurons at once
         exp_dict['cc_repo_vars'] = {
                 'output_size': [1, 1],
                 'model_im_size': [152, 304, 1],
@@ -1039,6 +1043,7 @@ def process_dataset(
     dataset_method['experiment_name'] = method_name
     dataset_method['dataset_name'] = dataset_name
     dataset_method['cell_specimen_id'] = rf_dict['cell_specimen_id']
+    dataset_method['cc_data_dir'] = main_config.cc_data_dir
 
     # 2. Encode dataset
     success = encode_datasets.main(dataset_method)
@@ -1127,6 +1132,9 @@ def build_multiple_datasets(
         cc_path = main_config.cluster_cc_path
     else:
         cc_path = main_config.cc_path
+    main_config.cc_data_dir = os.path.join(
+        cc_path,
+        'dataset_processing')  # Pass to encode_datasets.py
     sys.path.append(cc_path)
     import experiments  # from BP-CC
     # from db import credentials
@@ -1164,13 +1172,15 @@ def build_multiple_datasets(
     dataset_method = declare_allen_datasets()[template_dataset]()
     if dataset_method['weight_sharing']:
         gridded_rfs, rf_size = create_grid_queries(all_data_dicts[0])
-        all_data_dicts = query_neurons_rfs(
-            queries=gridded_rfs,
-            filter_by_stim=filter_by_stim,
-            sessions=sessions)
-        all_data_dicts = [
-            x for x in all_data_dicts if x != []]  # Filter empties.
-        downsample = dataset_method['process_stimuli']['natural_scenes']['resize'][0] /\
+        if dataset_method['grid_query']:
+            all_data_dicts = query_neurons_rfs(
+                queries=gridded_rfs,
+                filter_by_stim=filter_by_stim,
+                sessions=sessions)
+            all_data_dicts = [
+                x for x in all_data_dicts if x != []]  # Filter empties.
+        downsample = dataset_method[
+            'process_stimuli']['natural_scenes']['resize'][0] /\
             dataset_method['cc_repo_vars']['model_im_size'][0]
         filter_size = calculate_rf_size(
             rf_size=rf_size,
@@ -1273,4 +1283,3 @@ if __name__ == '__main__':
         help='Run experiments on pnodes.')
     args = parser.parse_args()
     build_multiple_datasets(**vars(args))
-

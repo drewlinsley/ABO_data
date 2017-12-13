@@ -227,8 +227,20 @@ def process_body(
         # Use the first event in stim_table as the triggering event
         stim_table_idx = stim_table[:, 1] + slice_inds[0]
         if exp_dict['st_conv']:
-            # Take the final timestep of activity for a spatiotemporal model
-            neural_data_trimmed = neural_data_trimmed.transpose()[:, -1]
+            if exp_dict['timecourse'] == 'all':
+                # Take all activity
+                neural_data_trimmed = neural_data_trimmed.transpose()
+                import ipdb
+                ipdb.set_trace()
+                # TODO unclear how this works with weight sharing
+            elif exp_dict['timecourse'] == 'final':
+                # Take the final timestep of activity for a ST model
+                neural_data_trimmed = neural_data_trimmed.transpose()[:, -1]
+            elif exp_dict['timecourse'] == 'mean':
+                # Take the mean of activity for a ST model
+                neural_data_trimmed = neural_data_trimmed.transpose().mean(1)
+            else:
+                raise NotImplementedError
         else:
             # Average across neural events
             neural_data_trimmed = neural_data_trimmed.mean(0)
@@ -976,7 +988,9 @@ def prepare_data_for_tf_records(
 
         # Create data loader for contextual circuit BP
         create_data_loader_class(
-            cc_repo['template_file'], loader_meta, dl_file)
+            template_file=cc_repo['template_file'],
+            meta_dict=loader_meta,
+            output_file=dl_file)
 
         # Create models for contextual circuit BP
         # summarized_rfs = summarize_rfs(rf_dicts)
@@ -1130,6 +1144,7 @@ def package_dataset(
         'template_file': config.cc_template,
         'path': config.cc_data_dir
     }
+
     for k, v in dataset_info['cc_repo_vars'].iteritems():
         cc_repo[k] = v
 
@@ -1172,6 +1187,7 @@ def main(
         da = dad()[dataset]()
     else:
         da = dataset
+        config.cc_data_dir = da['cc_data_dir']  # Interface w/ d_d_loop
     if output_directory is None:
         output_directory = os.path.join(
             config.tf_record_output)
