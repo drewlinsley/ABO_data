@@ -9,7 +9,6 @@ import json
 import string
 import sshtunnel
 import random
-import threading
 import psycopg2
 import psycopg2.extras
 import psycopg2.extensions
@@ -363,7 +362,6 @@ class allen_db(object):
             'normalize_labels': ['experiments', 'hp_combo_history'],
             'experiment_iteration': ['experiments', 'hp_combo_history']
         }
-
 
     def fix_namedict(self, namedict, table):
         """Insert empty fields in dictionary where keys are absent."""
@@ -1117,7 +1115,7 @@ def build_multiple_datasets(
         template_dataset='ALLEN_st_cells_1_movies',
         template_experiment='ALLEN_st_selected_cells_1',
         model_structs='ALLEN_st_selected_cells_1',
-        this_dataset_name='MULTIALLEN_ltwothree_st_',
+        this_dataset_name='MULTIALLEN_lfour_Nr5a1_st_',
         cluster=False,
         N=16):
     """Main function for creating multiple datasets of cells."""
@@ -1151,7 +1149,29 @@ def build_multiple_datasets(
                 'y_min': -10000,
                 'y_max': 10000,
             },
-            'cre_line': 'Cux2',  # Scnn1a-Tg3-Cre Nr5a1-Cre # Layer 4 models
+            'cre_line': 'Scnn1a-Tg3-Cre',  # Layer 4 models
+            'structure': 'VISp',
+            # 'imaging_depth': 175  # Layer 2/3 models
+            }],
+        [{
+            'rf_coordinate_range': {  # Get all cells
+                'x_min': -10000,
+                'x_max': 10000,
+                'y_min': -10000,
+                'y_max': 10000,
+            },
+            'cre_line': 'Nr5a1-Cre',  # Layer 4 models
+            'structure': 'VISp',
+            # 'imaging_depth': 175  # Layer 2/3 models
+            }],
+        [{
+            'rf_coordinate_range': {  # Get all cells
+                'x_min': -10000,
+                'x_max': 10000,
+                'y_min': -10000,
+                'y_max': 10000,
+            },
+            'cre_line': 'Cux2',
             'structure': 'VISp',
             'imaging_depth': 175  # Layer 2/3 models
             }]
@@ -1273,8 +1293,6 @@ def build_multiple_datasets(
                     idx=idx,
                     cluster=cluster,
                     exp_method_template=exp_method_template)
-        threading.enumerate()
-        import ipdb;ipdb.set_trace()
 
 
 if __name__ == '__main__':
