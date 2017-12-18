@@ -1039,7 +1039,6 @@ def process_dataset(
             string.ascii_uppercase + string.ascii_lowercase)
         for _ in range(N))
     method_name = this_dataset_name + method_name
-    import ipdb;ipdb.set_trace()
     dataset_method['experiment_name'] = method_name
     dataset_method['dataset_name'] = dataset_name
     dataset_method['cell_specimen_id'] = rf_dict['cell_specimen_id']
