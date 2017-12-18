@@ -1039,15 +1039,16 @@ def process_dataset(
             string.ascii_uppercase + string.ascii_lowercase)
         for _ in range(N))
     method_name = this_dataset_name + method_name
+    import ipdb;ipdb.set_trace()
     dataset_method['experiment_name'] = method_name
     dataset_method['dataset_name'] = dataset_name
     dataset_method['cell_specimen_id'] = rf_dict['cell_specimen_id']
     dataset_method['cc_data_dir'] = main_config.cc_data_dir
 
     # 2. Encode dataset
-    success = encode_datasets.main(dataset_method)
+    final_rf_dicts = encode_datasets.main(dataset_method)
 
-    if success:
+    if final_rf_dicts:
         # 3. Prepare models in CC-BP
         new_model_dir = os.path.join(
             model_directory,
@@ -1069,7 +1070,8 @@ def process_dataset(
             os.path.join(meta_dir, dataset_name),
             it_exp=it_exp,
             dataset_method=dataset_method,
-            rf_data=rf_dict)
+            rf_data=rf_dict,
+            final_rf_dicts=final_rf_dicts)
         prep_exp(
             it_exp,
             credentials=db_config,
@@ -1115,7 +1117,7 @@ def build_multiple_datasets(
         template_dataset='ALLEN_st_cells_1_movies',
         template_experiment='ALLEN_st_selected_cells_1',
         model_structs='ALLEN_st_selected_cells_1',
-        this_dataset_name='MULTIALLEN_lfour_Nr5a1_st_',
+        this_dataset_name='MULTIALLEN_',
         cluster=False,
         N=16):
     """Main function for creating multiple datasets of cells."""
@@ -1151,7 +1153,7 @@ def build_multiple_datasets(
             },
             'cre_line': 'Scnn1a-Tg3-Cre',  # Layer 4 models
             'structure': 'VISp',
-            # 'imaging_depth': 175  # Layer 2/3 models
+            'this_dataset_name': 'MULTIALLEN_lfour_Scnn1a'
             }],
         [{
             'rf_coordinate_range': {  # Get all cells
@@ -1162,7 +1164,7 @@ def build_multiple_datasets(
             },
             'cre_line': 'Nr5a1-Cre',  # Layer 4 models
             'structure': 'VISp',
-            # 'imaging_depth': 175  # Layer 2/3 models
+            'this_dataset_name': 'MULTIALLEN_lfour_Nr5a1'
             }],
         [{
             'rf_coordinate_range': {  # Get all cells
@@ -1173,7 +1175,8 @@ def build_multiple_datasets(
             },
             'cre_line': 'Cux2',
             'structure': 'VISp',
-            'imaging_depth': 175  # Layer 2/3 models
+            'imaging_depth': 175,  # Layer 2/3 models
+            'this_dataset_name': 'MULTIALLEN_ltwothree_Cux2'
             }]
     ]
     filter_by_stim = [
@@ -1253,6 +1256,8 @@ def build_multiple_datasets(
             rf_dict['on_center_y_max'] = rf_grid['y_max']
             rf_dict['on_center_x'] = rf_grid['x_min']
             rf_dict['on_center_y'] = rf_grid['y_min']
+            if 'this_dataset_name' in queries[ni][0].keys():
+                this_dataset_name = queries[ni][0]['this_dataset_name']
             process_dataset(
                 dataset_method=dataset_method,
                 rf_dict=rf_dict,

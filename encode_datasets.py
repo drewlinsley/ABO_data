@@ -1173,7 +1173,7 @@ def package_dataset(
         feature_types=dataset_info['tf_types'],
         cc_repo=cc_repo,
         config=config)
-    return True  # Successful
+    return rf_dicts  # Successful
 
 
 def main(

@@ -115,7 +115,9 @@ def plot_fits(
                     main_config.ccbp_exp_evals,
                     exp_name['experiment_name'],
                     '*val_labels.npy'))  # Scores has preds, labels has GT
-            for gd, sd, ld in tqdm(zip(data_files, score_files, lab_files), total=len(data_files)):
+            for gd, sd, ld in tqdm(
+                    zip(data_files, score_files, lab_files),
+                    total=len(data_files)):
                 mt = gd.split(
                     os.path.sep)[-1].split(
                         template_exp + '_')[-1].split('_' + 'val')[0]
@@ -141,7 +143,10 @@ def plot_fits(
     all_perfs = np.asarray(perfs)
     all_model_types = np.asarray(model_types)
 
-    # Medians per layer
+    # Medians per model
+    for model_name, all_model_types:
+
+
     print 'Dog med: %s | Dog max:%s' % (
         np.median(all_perfs[all_model_types == ['DoG']]),
         np.max(all_perfs[all_model_types == ['DoG']]))
@@ -246,7 +251,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--experiment',
         type=str,
-        default='760_cells_2017_11_05_16_36_55',
+        default='550_cells_2017_12_15_14_28_16',
         dest='experiment',
         help='Name of experiment.')
     args = parser.parse_args()
