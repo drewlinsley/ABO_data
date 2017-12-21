@@ -8,21 +8,23 @@
             'loss_function': ['pearson'],
             'optimizer': ['adam'],
             'model_struct': [
-                # os.path.join(model_folder, 'all_sep_conv3d'),
-                # os.path.join(model_folder, 'time_sep_conv3d'),
-                # os.path.join(model_folder, 'all_sep_nl_conv3d'),
-                # os.path.join(model_folder, 'time_sep_nl_conv3d'),
-                # os.path.join(model_folder, 'conv3d'),
+                os.path.join(model_folder, 'all_sep_conv3d'),
+                os.path.join(model_folder, 'time_sep_conv3d'),
+                os.path.join(model_folder, 'all_sep_nl_conv3d'),
+                os.path.join(model_folder, 'time_sep_nl_conv3d'),
+                os.path.join(model_folder, 'conv3d'),
                 os.path.join(model_folder, 'rnn2d'),
+                os.path.join(model_folder, 'sgru2d'),
             ],
             'dataset': ['EDIT']
         }
         exp = self.add_globals(exp)  # Add globals to the experiment'
-        exp['data_augmentations'] = ['resize']
+        exp['data_augmentations'] = [['resize']]
         exp['epochs'] = 50
         exp['validation_iters'] = 200  # Check validation every N steps of training
         exp['num_validation_evals'] = 225  # Corresponds to a full movie
         exp['batch_size'] = 10  # Train/val batch size.
-        exp['normalize_labels'] = 'zscore'  # Not currently implemented
+        # exp['normalize_labels'] = 'zscore'  # Not currently implemented
+        exp['save_weights'] = True
         return exp
 
