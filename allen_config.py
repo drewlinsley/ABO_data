@@ -25,8 +25,11 @@ class Allen_Brain_Observatory_Config():
         self.get_host_path()
         self.log_dir = 'logs'
         self.DB_loc = 'DataForTrain'
-        self.cc_template = 'template_cc_model.txt'
         self.exp_method_template_dir = 'CCBP_experiment_templates'
+        self.exp_data_template_dir = 'CCBP_dataset_templates'
+        self.cc_template = os.path.join(
+            self.exp_data_template_dir,
+            'template_cc_model.txt')
         self.tmp_pachaya_folder = 'pachaya_scripts'  # Holding old files here
         self.data_loc = os.path.join(
             '/media',
