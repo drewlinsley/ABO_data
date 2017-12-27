@@ -1143,40 +1143,40 @@ def build_multiple_datasets(
 
     # Query all neurons for an experiment setup
     queries = [  # MICHELE: ADD LOOP HERE
-        [{
-            'rf_coordinate_range': {  # Get all cells
-                'x_min': -10000,
-                'x_max': 10000,
-                'y_min': -10000,
-                'y_max': 10000,
-            },
-            'cre_line': 'Scnn1a-Tg3-Cre',  # Layer 4 models
-            'structure': 'VISp',
-            'this_dataset_name': 'MULTIALLEN_lfour_Scnn1a'
-            }],
-        [{
-            'rf_coordinate_range': {  # Get all cells
-                'x_min': -10000,
-                'x_max': 10000,
-                'y_min': -10000,
-                'y_max': 10000,
-            },
-            'cre_line': 'Nr5a1-Cre',  # Layer 4 models
-            'structure': 'VISp',
-            'this_dataset_name': 'MULTIALLEN_lfour_Nr5a1'
-            }],
-        # [{  # DO THIS SEPARATELY
+        # [{
         #     'rf_coordinate_range': {  # Get all cells
         #         'x_min': -10000,
         #         'x_max': 10000,
         #         'y_min': -10000,
         #         'y_max': 10000,
         #     },
-        #     'cre_line': 'Cux2',
+        #     'cre_line': 'Scnn1a-Tg3-Cre',  # Layer 4 models
         #     'structure': 'VISp',
-        #     'imaging_depth': 175,  # Layer 2/3 models
-        #     'this_dataset_name': 'MULTIALLEN_ltwothree_Cux2'
-        #     }]
+        #     'this_dataset_name': 'MULTIALLEN_lfour_Scnn1a'
+        #     }],
+        # [{
+        #     'rf_coordinate_range': {  # Get all cells
+        #         'x_min': -10000,
+        #         'x_max': 10000,
+        #         'y_min': -10000,
+        #         'y_max': 10000,
+        #     },
+        #     'cre_line': 'Nr5a1-Cre',  # Layer 4 models
+        #     'structure': 'VISp',
+        #     'this_dataset_name': 'MULTIALLEN_lfour_Nr5a1'
+        #     }],
+        [{  # DO THIS SEPARATELY
+            'rf_coordinate_range': {  # Get all cells
+                'x_min': -10000,
+                'x_max': 10000,
+                'y_min': -10000,
+                'y_max': 10000,
+            },
+            'cre_line': 'Cux2',
+            'structure': 'VISp',
+            'imaging_depth': 175,  # Layer 2/3 models
+            'this_dataset_name': 'MULTIALLEN_ltwothree_Cux2'
+            }]
     ]
     filter_by_stim = [
         'natural_movie_one',
