@@ -144,19 +144,12 @@ def plot_fits(
     all_model_types = np.asarray(model_types)
 
     # Medians per model
-    for model_name, all_model_types:
-
-
-    print 'Dog med: %s | Dog max:%s' % (
-        np.median(all_perfs[all_model_types == ['DoG']]),
-        np.max(all_perfs[all_model_types == ['DoG']]))
-    print 'Conv med: %s | Conv max:%s' % (
-        np.median(all_perfs[all_model_types == ['conv2d']]),
-        np.max(all_perfs[all_model_types == ['conv2d']]))
-    print 'Sep med: %s | Sep max:%s' % (
-        np.median(all_perfs[all_model_types == ['sep_conv2d']]),
-        np.max(all_perfs[all_model_types == ['sep_conv2d']]))
-
+    for model_name in all_model_types:
+        print '%s med: %s | %s max: %s' % (
+            model_name,
+            model_name,
+            np.median(all_perfs[all_model_types == [model_name]]),
+            np.max(all_perfs[all_model_types == [model_name]]))
 
     # Create a joyplot
     create_joyplot(

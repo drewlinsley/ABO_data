@@ -32,16 +32,16 @@ class Allen_Brain_Observatory_Config():
             'template_cc_model.txt')
         self.tmp_pachaya_folder = 'pachaya_scripts'  # Holding old files here
         self.data_loc = os.path.join(
-            '%smedia' % os.path.sep,
+            '/media',
             'data_cifs',
             'AllenData')
         self.tf_record_output = os.path.join(
-            '%smedia' % os.path.sep,
+            '/media',
             'data_cifs',
             'contextual_circuit',
             'tf_records')
         self.ccbp_exp_evals = os.path.join(
-            '%smedia' % os.path.sep,
+            '/media',
             'data_cifs',
             'contextual_circuit',
             'experiment_evaluations')

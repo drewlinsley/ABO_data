@@ -1118,6 +1118,7 @@ def build_multiple_datasets(
         model_structs='ALLEN_st_selected_cells_1',
         this_dataset_name='MULTIALLEN_',
         cluster=False,
+        print_info=False,
         N=16):
     """Main function for creating multiple datasets of cells."""
     main_config = Allen_Brain_Observatory_Config()
@@ -1172,10 +1173,8 @@ def build_multiple_datasets(
                 'y_min': -10000,
                 'y_max': 10000,
             },
-            'cre_line': 'Cux2',
-            'structure': 'VISp',
-            'imaging_depth': 175,  # Layer 2/3 models
-            'this_dataset_name': 'MULTIALLEN_ltwothree_Cux2'
+            'structure': 'VISl',
+            'this_dataset_name': 'MULTIALLEN_VISl_lfour_Scnn1a'
             }]
     ]
     filter_by_stim = [
@@ -1191,7 +1190,19 @@ def build_multiple_datasets(
         queries=queries,
         filter_by_stim=filter_by_stim,
         sessions=sessions)
+
     # Check if a weight sharing is needed
+    assert len(flatten_list(all_data_dicts)) > 0, 'No cells in this query.'
+
+    # Print cell information if requested
+    if print_info:
+        cre_lines = [x['cre_line'] for x in all_data_dicts[0]]
+        cre_lines, cre_counts = np.unique(cre_lines, return_counts=True)
+        cre_list = [(x, y) for x, y in zip(cre_lines, cre_counts)]
+        print 'Found the following cre line promotors: %s' % json.dumps(cre_list)
+        return
+
+    # Prepare datasets
     dataset_method = declare_allen_datasets()[template_dataset]()
     if dataset_method['weight_sharing']:
         gridded_rfs, rf_size = create_grid_queries(all_data_dicts[0])
@@ -1306,5 +1317,10 @@ if __name__ == '__main__':
         dest='cluster',
         action='store_true',
         help='Run experiments on pnodes.')
+    parser.add_argument(
+        '--print',
+        dest='print_info',
+        action='store_true',
+        help='Print information on queried cells.')
     args = parser.parse_args()
     build_multiple_datasets(**vars(args))
