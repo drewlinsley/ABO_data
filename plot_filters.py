@@ -37,6 +37,19 @@ def save_mosaic(
     plt.savefig(output.split('.')[0] + '.pdf')
 
 
+def plot_filters(maps, rc, cc):
+    plt.figure(figsize=(10, 10))
+    gs1 = gridspec.GridSpec(rc, cc)
+    gs1.update(wspace=0.01, hspace=0.01)  # set the spacing between axes.
+    for idx, im in enumerate(maps):
+        ax1 = plt.subplot(gs1[idx])
+        plt.axis('off')
+        ax1.set_xticklabels([])
+        ax1.set_yticklabels([])
+        ax1.set_aspect('equal')
+        ax1.imshow(im.squeeze(), cmap='Greys')
+
+
 def plot_fits(
         experiment='760_cells_2017_11_04_16_29_09',
         query_db=False,

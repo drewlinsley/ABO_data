@@ -272,7 +272,7 @@ class allen_db(object):
             cluster=False):
         """Init global variables."""
         self.status_message = False
-        self.db_schema_file = os.path.join('data_db','db_schema.txt')
+        self.db_schema_file = os.path.join('data_db', 'db_schema.txt')
         self.cluster = cluster
         # Pass config -> this class
         # self.add_attributes(config)
@@ -1199,7 +1199,8 @@ def build_multiple_datasets(
         cre_lines = [x['cre_line'] for x in all_data_dicts[0]]
         cre_lines, cre_counts = np.unique(cre_lines, return_counts=True)
         cre_list = [(x, y) for x, y in zip(cre_lines, cre_counts)]
-        print 'Found the following cre line promotors: %s' % json.dumps(cre_list)
+        print 'Found the following cre line promotors: %s' % json.dumps(
+            cre_list)
         return
 
     # Prepare datasets
