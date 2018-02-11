@@ -16,8 +16,8 @@ import numpy as np
 import itertools as it
 import pandas as pd
 from allen_config import Allen_Brain_Observatory_Config
-from data_db import data_db
 from data_db import credentials
+from data_db import data_db
 from glob import glob
 from datetime import datetime
 from argparse import ArgumentParser
@@ -301,7 +301,8 @@ class allen_db(object):
             self.forward = None
             self.pgsql_port = ''
             pgsql_string = prepare_connection(
-                self.credentials.cmbp_postgresql_credentials(),
+                # self.credentials.cmbp_postgresql_credentials(),
+                self.credentials.postgresql_credentials(),
                 str(self.pgsql_port))
         self.pgsql_string = pgsql_string
         self.conn = psycopg2.connect(**pgsql_string)
@@ -659,9 +660,10 @@ class allen_db(object):
 
     def get_performance(self, experiment_name):
         """Get experiment performance."""
+        import ipdb; ipdb.set_trace()
         self.cur.execute(
             """
-            SELECT * FROM performance AS P
+            SELECT validation_loss FROM performance AS P
             LEFT JOIN experiments ON experiments._id=P.experiment_id
             WHERE P.experiment_name=%(experiment_name)s
             """,
@@ -955,7 +957,7 @@ class declare_allen_datasets():
                 'image',
                 'label'
             ]
-        # exp_dict['deconv_method'] = 'c2s'
+        exp_dict['deconv_method'] = 'oasis'
         # exp_dict['cv_split'] = {
         #     'cv_split_single_stim': {
         #         'target': 0,
@@ -1143,7 +1145,184 @@ def build_multiple_datasets(
     # db_config = credentials.postgresql_connection()
 
     # Query all neurons for an experiment setup
-    queries = [  # MICHELE: ADD LOOP HERE
+    queries = [  
+    #############################################
+        #############################################
+        # Dorsal Visual Area Anterior Medial (VISam)
+        # [{
+        #     'rf_coordinate_range': {  # Get all cells
+        #         'x_min': -10000,
+        #         'x_max': 10000,
+        #         'y_min': -10000,
+        #         'y_max': 10000,
+        #     },
+        #     'structure': 'VISam',
+        #     'cre_line': 'Cux2-CreERT2',  # Layer 2/3/4 models
+        #     'this_dataset_name': 'MULTIALLEN_VISam_l234_Cux2'
+        #     }],
+        # [{
+        #     'rf_coordinate_range': {  # Get all cells
+        #         'x_min': -10000,
+        #         'x_max': 10000,
+        #         'y_min': -10000,
+        #         'y_max': 10000,
+        #     },
+        #     'structure': 'VISam',
+        #     'cre_line': 'Emx1-IRES-Cre',  # Cortex & hippo
+        #     'this_dataset_name': 'MULTIALLEN_VISam_cortexhippo_Emx1'
+        #     }],
+        # # [{    *******THIS ONE ERRORED BECCAUSE OF MISALIGNED CELL IDS *********
+        # #     'rf_coordinate_range': {  # Get all cells
+        # #         'x_min': -10000,
+        # #         'x_max': 10000,
+        # #         'y_min': -10000,
+        # #         'y_max': 10000,
+        # #     },
+        # #     'structure': 'VISam',
+        # #     'cre_line': 'Nr5a1-Cre',  # Layer 4 model
+        # #     'this_dataset_name': 'MULTIALLEN_VISam_lfour_Nr5a1'
+        # #     }], **************************************************************
+        # [{
+        #     'rf_coordinate_range': {  # Get all cells
+        #         'x_min': -10000,
+        #         'x_max': 10000,
+        #         'y_min': -10000,
+        #         'y_max': 10000,
+        #     },
+        #     'structure': 'VISam',
+        #     'cre_line': 'Rbp4-Cre_KL100',  # Layer 5 model
+        #     'this_dataset_name': 'MULTIALLEN_VISam_lfive_Rbp4'
+        #     }],
+        [{
+            'rf_coordinate_range': {  # Get all cells
+                'x_min': -10000,
+                'x_max': 10000,
+                'y_min': -10000,
+                'y_max': 10000,
+            },
+            'structure': 'VISam',
+            'cre_line': 'Rorb-IRES2-Cre',  # Layer 4/5/6 model
+            'this_dataset_name': 'MULTIALLEN_VISam_l456_Rorb'
+            }],
+        # #############################################
+        # #############################################
+        # # Dorsal Visual Area Posterior Medial (VISpm)
+        # [{
+        #     'rf_coordinate_range': {  # Get all cells
+        #         'x_min': -10000,
+        #         'x_max': 10000,
+        #         'y_min': -10000,
+        #         'y_max': 10000,
+        #     },
+        #     'structure': 'VISpm',
+        #     'cre_line': 'Cux2-CreERT2',  # Layer 2/3/4 models
+        #     'this_dataset_name': 'MULTIALLEN_VISpm_l234_Cux2'
+        #     }],
+        # [{
+        #     'rf_coordinate_range': {  # Get all cells
+        #         'x_min': -10000,
+        #         'x_max': 10000,
+        #         'y_min': -10000,
+        #         'y_max': 10000,
+        #     },
+        #     'structure': 'VISpm',
+        #     'cre_line': 'Emx1-IRES-Cre',  # Cortex & hippo
+        #     'this_dataset_name': 'MULTIALLEN_VISpm_cortexhippo_Emx1'
+        #     }],
+        # [{
+        #     'rf_coordinate_range': {  # Get all cells
+        #         'x_min': -10000,
+        #         'x_max': 10000,
+        #         'y_min': -10000,
+        #         'y_max': 10000,
+        #     },
+        #     'structure': 'VISpm',
+        #     'cre_line': 'Nr5a1-Cre',  # Layer 4 model
+        #     'this_dataset_name': 'MULTIALLEN_VISpm_lfour_Nr5a1'
+        #     }],
+        # [{
+        #     'rf_coordinate_range': {  # Get all cells
+        #         'x_min': -10000,
+        #         'x_max': 10000,
+        #         'y_min': -10000,
+        #         'y_max': 10000,
+        #     },
+        #     'structure': 'VISpm',
+        #     'cre_line': 'Rbp4-Cre_KL100',  # Layer 5 model
+        #     'this_dataset_name': 'MULTIALLEN_VISpm_lfive_Rbp4'
+        #     }],
+        # [{
+        #     'rf_coordinate_range': {  # Get all cells
+        #         'x_min': -10000,
+        #         'x_max': 10000,
+        #         'y_min': -10000,
+        #         'y_max': 10000,
+        #     },
+        #     'structure': 'VISpm',
+        #     'cre_line': 'Rorb-IRES2-Cre',  # Layer 4/5/6 model
+        #     'this_dataset_name': 'MULTIALLEN_VISpm_l456_Rorb'
+        #     }],
+        #############################################
+        #############################################
+        # # Secondary Visual Area
+        # [{
+        #     'rf_coordinate_range': {  # Get all cells
+        #         'x_min': -10000,
+        #         'x_max': 10000,
+        #         'y_min': -10000,
+        #         'y_max': 10000,
+        #     },
+        #     'structure': 'VISl',
+        #     'cre_line': 'Cux2-CreERT2',  # Layer 2/3/4 models
+        #     'this_dataset_name': 'MULTIALLEN_VISl_l234_Cux2'
+        #     }],
+        # [{
+        #     'rf_coordinate_range': {  # Get all cells
+        #         'x_min': -10000,
+        #         'x_max': 10000,
+        #         'y_min': -10000,
+        #         'y_max': 10000,
+        #     },
+        #     'structure': 'VISl',
+        #     'cre_line': 'Emx1-IRES-Cre',  # Cortex & hippo
+        #     'this_dataset_name': 'MULTIALLEN_VISl_cortexhippo_Emx1'
+        #     }],
+        # # [{ *******THIS ONE ERRORED BECCAUSE OF incorrect concatenation axes ******
+        # #     'rf_coordinate_range': {  # Get all cells
+        # #         'x_min': -10000,
+        # #         'x_max': 10000,
+        # #         'y_min': -10000,
+        # #         'y_max': 10000,
+        # #     },
+        # #     'structure': 'VISl',
+        # #     'cre_line': 'Nr5a1-Cre',  # Layer 4 model
+        # #     'this_dataset_name': 'MULTIALLEN_VISl_lfour_Nr5a1'
+        # #     }], ********************************************************
+        # # [{
+        # #     'rf_coordinate_range': {  # Get all cells
+        # #         'x_min': -10000,
+        # #         'x_max': 10000,
+        # #         'y_min': -10000,
+        # #         'y_max': 10000,
+        # #     },
+        # #     'structure': 'VISl',
+        # #     'cre_line': 'Rbp4-Cre_KL100',  # Layer 5 model
+        # #     'this_dataset_name': 'MULTIALLEN_VISl_lfive_Rbp4'
+        # #     }],
+        # [{
+        #     'rf_coordinate_range': {  # Get all cells
+        #         'x_min': -10000,
+        #         'x_max': 10000,
+        #         'y_min': -10000,
+        #         'y_max': 10000,
+        #     },
+        #     'structure': 'VISl',
+        #     'cre_line': 'Rorb-IRES2-Cre',  # Layer 4/5/6 model
+        #     'this_dataset_name': 'MULTIALLEN_VISl_l456_Rorb'
+        #     }],
+        #############################################
+        #############################################
+        # Primary Visual Area
         # [{
         #     'rf_coordinate_range': {  # Get all cells
         #         'x_min': -10000,
@@ -1166,16 +1345,19 @@ def build_multiple_datasets(
         #     'structure': 'VISp',
         #     'this_dataset_name': 'MULTIALLEN_lfour_Nr5a1'
         #     }],
-        [{  # DO THIS SEPARATELY
-            'rf_coordinate_range': {  # Get all cells
-                'x_min': -10000,
-                'x_max': 10000,
-                'y_min': -10000,
-                'y_max': 10000,
-            },
-            'structure': 'VISl',
-            'this_dataset_name': 'MULTIALLEN_VISl_lfour_Scnn1a'
-            }]
+        # # [{  # DO THIS SEPARATELY
+        # #     'rf_coordinate_range': {  # Get all cells
+        # #         'x_min': -10000,
+        # #         'x_max': 10000,
+        # #         'y_min': -10000,
+        # #         'y_max': 10000,
+        # #     },
+        # #     'cre_line': 'Cux2',
+        # #     'structure': 'VISp'  # Layer 2/3 models
+        # #     'this_dataset_name': 'MULTIALLEN_ltwothree_Cux2'
+        # #     }]
+        #############################################
+        #############################################
     ]
     filter_by_stim = [
         'natural_movie_one',

@@ -17,10 +17,12 @@ from declare_datasets_loop import declare_allen_datasets as dad
 from allen_config import Allen_Brain_Observatory_Config as Config
 from allensdk.brain_observatory import stimulus_info
 from utils.py_utils import flatten_list
-try:
-    from ops import helper_funcs, deconvolve
-except:
-    'Print failed loading Allen utils. Are you doing something fancy?'
+from ops import helper_funcs, deconvolve
+# from deconv_methods import eval_resnet
+# try:
+#     from ops import helper_funcs, deconvolve
+# except:
+#     'Print failed loading Allen utils. Are you doing something fancy?'
 # from memory_profiler import profile
 
 
@@ -207,10 +209,17 @@ def process_body(
     neural_data = neural_data[trace_key[0]].astype(exp_dict['data_type'])
     df['neural_trace'] = neural_data
 
+
     # Trim neural data
+    # TODO: add deconv method in preprocessing data before tfrecords
+    # import ipdb; ipdb.set_trace()
     if exp_dict['deconv_method'] is not None:
-        neural_data = deconv.deconvolve(
-            neural_data).astype(exp_dict['data_type'])
+        df['deconv_method'] = exp_dict['deconv_method']
+        df['deconv_dir'] = exp_dict['deconv_dir']
+        # Preprocess data by deconvolving from calcium trace to spike predictions (deconv 1D array of flourescence)
+        deconv_object = deconvolve.deconvolve(df)
+        cal_flouresc_trace, spike_prediction, baseline_cal_flouresc, AR2params, lagrange_mult = deconv_object.deconvolved_trace
+        neural_data = spike_prediction
 
     # Delay data with 'neural_delay'
     if isinstance(exp_dict['neural_delay'], list):
@@ -450,7 +459,8 @@ def process_cell_data(
         stimuli_key,
         neural_key):
     """Loop for processing cell data."""
-    deconv = deconvolve.deconvolve(exp_dict)
+    # deconv = deconvolve.deconvolve(exp_dict)
+    deconv = None
 
     # Preprocess raw_stimuli
     all_stimuli = preload_raw_stimuli(data_dicts=data_dicts, exp_dict=exp_dict)

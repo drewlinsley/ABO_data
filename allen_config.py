@@ -15,6 +15,11 @@ class Allen_Brain_Observatory_Config():
             self.repo_PATH = '/home/drew/Documents/abo_data'
             self.cc_path = '/home/drew/Documents/contextual_circuit_bp'
             self.cluster_cc_path = '/media/data_cifs/cluster_projects/contextual_circuit_bp'
+        elif socket.gethostname() == 'x6':
+            self.host = 'x6'
+            self.repo_PATH = '/home/mwinter/abo_data'
+            self.cc_path = '/home/mwinter/contextual_circuit_bp'
+            # self.cc_path = '/home/mwinter/contextual_circuit_t/contextual_circuit_bp'
         else:
             raise Exception(
                 'Unknown Host : Please add your directory at get_host_path()')
@@ -27,27 +32,24 @@ class Allen_Brain_Observatory_Config():
         self.DB_loc = 'DataForTrain'
         self.exp_method_template_dir = 'CCBP_experiment_templates'
         self.exp_data_template_dir = 'CCBP_dataset_templates'
+        self.data_loc = '/media/data_cifs/AllenData/'
+        self.project_directory = '/media/data_cifs/michele/contextual_circuit/'
         self.cc_template = os.path.join(
             self.exp_data_template_dir,
             'template_cc_model.txt')
         self.tmp_pachaya_folder = 'pachaya_scripts'  # Holding old files here
-        self.data_loc = os.path.join(
-            '%smedia' % os.path.sep,
-            'data_cifs',
-            'AllenData')
         self.tf_record_output = os.path.join(
-            '%smedia' % os.path.sep,
-            'data_cifs',
-            'contextual_circuit',
+            self.project_directory,
             'tf_records')
         self.ccbp_exp_evals = os.path.join(
-            '%smedia' % os.path.sep,
-            'data_cifs',
-            'contextual_circuit',
+            self.project_directory,
             'experiment_evaluations')
+        # self.deconv_model_dir = os.path.join(
+        #     self.data_loc,
+        #     'deconv_models')
         self.deconv_model_dir = os.path.join(
-            self.data_loc,
-            'deconv_models')
+            self.repo_PATH,
+            'deconv_methods')
         self.model_struct_dir = os.path.join(
             self.cc_path,
             'models',
@@ -55,7 +57,7 @@ class Allen_Brain_Observatory_Config():
         self.model_template_dir = os.path.join(
             self.model_struct_dir,
             'template_ALLEN')
-        self.model_prefix = 'auto_generated_'
+        self.model_prefix = 'auto_generated_'       
 
         # TODO: Document these parameters
         # Parameters

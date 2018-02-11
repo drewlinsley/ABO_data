@@ -4,7 +4,7 @@ import argparse
 import numpy as np
 from glob import glob
 from allen_config import Allen_Brain_Observatory_Config
-# from declare_datasets_loop import query_hp_hist
+from declare_datasets_loop import query_hp_hist
 from matplotlib import pyplot as plt
 import pandas as pd
 # from ggplot import *
@@ -19,13 +19,15 @@ def create_joyplot(all_perfs, all_model_types, output_name):
     df = pd.DataFrame(
         np.vstack((all_perfs, all_model_types)).transpose(),
         columns=['x', 'g']) 
+    # import ipdb; ipdb.set_trace()
 
     # Initialize the FacetGrid object
     sns.set(style="white", rc={"axes.facecolor": (0, 0, 0, 0)})
     # pal = sns.cubehelix_palette(10, rot=-.25, light=.7)
     pal = sns.hls_palette(3, l=0.7, s=0.2)  # , l=.3, s=.8)
     # pal = sns.hls_palette(3, l=0.3, s=0.8)  # l=0.7, s=0.2)  # , l=.3, s=.8)
-    g = sns.FacetGrid(df, row="g", hue="g", aspect=2, size=2, palette=pal)
+    # g = sns.FacetGrid(df, row="g", hue="g", aspect=2, size=2, palette=pal)
+    g = sns.FacetGrid(df, aspect=2, size=2, palette=pal)
     plt.xlim([-0.2, 1])
 
     # Draw the densities in a few steps
@@ -53,8 +55,8 @@ def create_joyplot(all_perfs, all_model_types, output_name):
 
 
 def plot_fits(
-        experiment='760_cells_2017_11_04_16_29_09',
-        query_db=False,
+        experiment='90_cells_2018_01_14_15_39_05',
+        query_db=True,
         num_models=3,
         template_exp='ALLEN_selected_cells_1'):
     """Plot fits across the RF.
@@ -67,7 +69,8 @@ def plot_fits(
     main_config = Allen_Brain_Observatory_Config()
     sys.path.append(main_config.cc_path)
     from db import credentials
-    db_config = credentials.postgresql_connection()
+    # db_config = credentials.postgresql_connection()
+
     files = glob(
         os.path.join(
             main_config.multi_exps,
@@ -85,14 +88,16 @@ def plot_fits(
         exp_name = {
             'experiment_name': data['dataset_method'].item()[
                 'experiment_name']}
+        import ipdb; ipdb.set_trace()
         if query_db:
-            perf, mt = query_hp_hist(exp_name, pass_creds=db_config)
+            perf = query_hp_hist(exp_name['experiment_name'], credentials=credentials)
+            import ipdb; ipdb.set_trace()
             if perf is None:
                 print 'No fits for: %s' % exp_name['experiment_name']
             else:
                 d['perf'] = perf
                 d['max_val'] = np.max(perf)
-                d['mt'] = mt
+                # d['mt'] = mt
                 out_data += [d]
                 xs += [np.round(d['x'])]
                 ys += [np.round(d['y'])]
@@ -150,7 +155,6 @@ def plot_fits(
             model_name,
             np.median(all_perfs[all_model_types == [model_name]]),
             np.max(all_perfs[all_model_types == [model_name]]))
-
     # Create a joyplot
     create_joyplot(
         all_perfs=all_perfs,
@@ -244,7 +248,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--experiment',
         type=str,
-        default='550_cells_2017_12_15_14_28_16',
+        default='90_cells_2018_01_14_15_39_05',
         dest='experiment',
         help='Name of experiment.')
     args = parser.parse_args()
