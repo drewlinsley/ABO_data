@@ -5,6 +5,10 @@ import psycopg2
 import psycopg2.extras
 import psycopg2.extensions
 import credentials
+import os,sys,inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0,parentdir) 
 from allen_config import Allen_Brain_Observatory_Config
 sshtunnel.DAEMON = True  # Prevent hanging process due to forward thread
 main_config = Allen_Brain_Observatory_Config()
@@ -13,7 +17,7 @@ main_config = Allen_Brain_Observatory_Config()
 class data_db(object):
     def __init__(self, config):
         self.status_message = False
-        self.db_schema_file = 'db/db_schema.txt'
+        self.db_schema_file = 'data_db/db_schema.txt'
         # Pass config -> this class
         for k, v in config.items():
             setattr(self, k, v)
