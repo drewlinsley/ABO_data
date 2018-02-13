@@ -1,9 +1,16 @@
-from deconv_methods import elephant_preprocess, elephant_deconv
 # import rpy2.robjects.packages
 # from c2s import c2s
 # from cmt.models import MCGSM
 # from c2s import robust_linear_regression
-
+try:
+    from deconv_methods import elephant_preprocess, elephant_deconv
+except IOerror:
+    print 'Unable to import ELEPHANT deconv model.'
+try:
+    from OASIS.oasis.functions import deconvolve as oasis_deconv
+    from OASIS.oasis import oasisAR1, oasisAR2
+except IOerror:
+    print 'Unable to import OASIS deconv model.'
 
 class deconvolve(object):
     """Wrapper class for deconvolving spikes from Ca2+ data."""
@@ -22,6 +29,7 @@ class deconvolve(object):
         self.batch_size = 4096
         self.update_params(kwargs)
         self.check_params()
+        self.deconvolved_trace = self.deconvolve()
 
     def check_params(self):
         if not hasattr(self, 'deconv_method'):
@@ -35,6 +43,9 @@ class deconvolve(object):
         if not hasattr(self, 'data_fps'):
             raise RuntimeError(
                 'You must pass a data_fps.')
+        if not hasattr(self, 'neural_trace'):
+            raise RuntimeError(
+                'You must pass an activity trace.')
 
     def update_params(self, kwargs):
         """Update the class attributes with kwargs."""
@@ -58,16 +69,27 @@ class deconvolve(object):
                 elephant_deconv.deconv)
         elif method == 'lzerospikeinference':
             lzsi = rpy2.robjects.packages.importr("LZeroSpikeInference")
-            preprocess = lambda x: x.tolist()
-            method = lambda x: lzsi.estimateSpikes(x, **{'gam': 0.998, 'lambda': 8, 'type': "ar1"})
-            return (preprocess, method)
+            def lzsi_preprocess(x):
+                return x.tolist()
+            def lzsi_method(x):
+                return lzsi.estimateSpikes(
+                    x, **{'gam': 0.998, 'lambda': 8, 'type': "ar1"})
+            return (lzsi_preprocess, lzsi_method)
+        elif method == 'oasis' or method == 'OASIS':
+            def oasis_preprocess(x):
+                return double(x)
+            def oasis_method(x):
+                return oasis_deconv(x)
+            return (oasis_preprocess, oasis_deconv)
         elif method == 'c2s':
-            def preprocess(x, fps=30.):
+            def stm_preprocess(x, fps=30.):
                 d = []
                 for ce in x:
                     d += [{'calcium': ce, 'fps': fps}]
                 return c2s.preprocess(d, fps=fps)
-            method = lambda x: c2s.predict(x)
-            return (preprocess, method)
+            def stm_method(x):
+                return c2s.predict(x)
+            return (stm_preprocess, stm_method)
         else:
             return None
+

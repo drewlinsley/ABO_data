@@ -7,14 +7,12 @@
             'lr': [3e-4],
             'loss_function': ['pearson'],
             'optimizer': ['adam'],
-            'model_struct': [
-                # os.path.join(model_folder, 'all_sep_conv3d'),
-                # os.path.join(model_folder, 'time_sep_conv3d'),
-                # os.path.join(model_folder, 'all_sep_nl_conv3d'),
-                # os.path.join(model_folder, 'time_sep_nl_conv3d'),
-                # os.path.join(model_folder, 'conv3d'),
-                # os.path.join(model_folder, 'rnn2d'),
+                os.path.join(model_folder, 'complete_sep_conv3d'),
+                os.path.join(model_folder, 'time_sep_conv3d'),
+                os.path.join(model_folder, 'gru2d'),
+                os.path.join(model_folder, 'alexnet_gru2d'),
                 os.path.join(model_folder, 'sgru2d'),
+                os.path.join(model_folder, 'alexnet_sgru2d')
             ],
             'dataset': ['EDIT']
         }
