@@ -93,11 +93,11 @@ class deconvolve(object):
                 return oasis_deconv(
                     x,
                     g=(None,None),
-                    penalty=0,
-                    optimize_g=5,
-                    max_iter=5)  # denoised, spikes, params
+                    penalty=1)  # ,
+                    # optimize_g=5,
+                    # max_iter=5)  # denoised, spikes, params
             selection = 1
-            return (oasis_preprocess, oasis_deconv, selection)
+            return (oasis_preprocess, oasis_method, selection)
         elif method == 'c2s':
             def stm_preprocess(x, fps=30.):
                 d = []

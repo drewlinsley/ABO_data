@@ -862,8 +862,7 @@ class declare_allen_datasets():
                     'y_max': 50,
                 },
                 'cre_line': 'Cux2',
-                'structure': 'VISp',
-                'imaging_depth': 175}
+                'structure': 'VISp'}
             ],
             'cross_ref': 'rf_coordinate_range_and_stimuli',
             'store_means': [
@@ -905,8 +904,7 @@ class declare_allen_datasets():
                 'y_max': 60,
             },
             'cre_line': 'Cux2',
-            'structure': 'VISp',
-            'imaging_depth': 175}]
+            'structure': 'VISp'}]
         exp_dict['cross_ref'] = 'rf_coordinate_range_and_stimuli'
         exp_dict['store_means'] = [
                 'image',
