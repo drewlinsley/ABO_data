@@ -21,6 +21,7 @@ try:
     from ops import helper_funcs, deconvolve
 except:
     'Print failed loading Allen utils. Are you doing something fancy?'
+from ops import helper_funcs, deconvolve
 # from memory_profiler import profile
 
 
@@ -209,8 +210,9 @@ def process_body(
 
     # Trim neural data
     if exp_dict['deconv_method'] is not None:
-        neural_data = deconv.deconvolve(
-            neural_data).astype(exp_dict['data_type'])
+        neural_data = np.asarray(
+            deconv.deconvolve(
+                neural_data)).astype(exp_dict['data_type'])
 
     # Delay data with 'neural_delay'
     if isinstance(exp_dict['neural_delay'], list):
@@ -450,7 +452,7 @@ def process_cell_data(
         stimuli_key,
         neural_key):
     """Loop for processing cell data."""
-    deconv = deconvolve.deconvolve(exp_dict)
+    deconv = deconvolve.deconvolve(exp_dict=exp_dict)
 
     # Preprocess raw_stimuli
     all_stimuli = preload_raw_stimuli(data_dicts=data_dicts, exp_dict=exp_dict)
@@ -684,7 +686,6 @@ def load_npzs(
                         axis=0)
 
         # Test for aligned cells across sessions
-        # import ipdb;ipdb.set_trace()  TODO: FIX THIS FOR SCENES
         test_cells = np.concatenate(
             [np.expand_dims(x, axis=-1)
                 for x in cat_cell_specimen_ids.values()],

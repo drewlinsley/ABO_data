@@ -803,7 +803,7 @@ class declare_allen_datasets():
             },
             'neural_delay': [8, 11],  # MS delay * 30fps for neural data
             'st_conv': False,
-            'timecourse': 'final',  # all mean or final; only for st_conv.
+            'timecourse': 'mean',  # all mean or final; only for st_conv.
             'weight_sharing': True,
             'grid_query': True,  # False = evaluate all neurons at once
             'detrend': False,
@@ -948,14 +948,13 @@ class declare_allen_datasets():
                 'y_max': 60,
             },
             'cre_line': 'Cux2',
-            'structure': 'VISp',
-            'imaging_depth': 175}]
+            'structure': 'VISp'}]
         exp_dict['cross_ref'] = 'rf_coordinate_range_and_stimuli'
         exp_dict['store_means'] = [
                 'image',
                 'label'
             ]
-        # exp_dict['deconv_method'] = 'c2s'
+        exp_dict['deconv_method'] = 'OASIS'
         # exp_dict['cv_split'] = {
         #     'cv_split_single_stim': {
         #         'target': 0,
@@ -963,22 +962,22 @@ class declare_allen_datasets():
         #     }
         # }
         exp_dict['cv_split'] = {
-                'split_on_stim': 'natural_movie_two'  # Specify train set
+            'split_on_stim': 'natural_movie_two'  # Specify train set
         }
         exp_dict['neural_delay'] = [8, 13]  # MS delay * 30fps for neural data
-        exp_dict['slice_frames'] = 4  # MICHELE
+        exp_dict['slice_frames'] = 1  # 4 MICHELE
         exp_dict['st_conv'] = len(
             range(
                 exp_dict['neural_delay'][0],
                 exp_dict['neural_delay'][1]))
         exp_dict['grid_query'] = False  # False = evaluate all neurons at once
         exp_dict['cc_repo_vars'] = {
-                'output_size': [1, 1],
-                'model_im_size': [152, 304, 1],
-                'loss_function': 'pearson',
-                'score_metric': 'pearson',
-                'preprocess': 'resize'
-            }
+            'output_size': [1, 1],
+            'model_im_size': [152, 304, 1],
+            'loss_function': 'pearson',
+            'score_metric': 'pearson',
+            'preprocess': 'resize'
+        }
         exp_dict['weight_sharing'] = True
         return exp_dict
 
