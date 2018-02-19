@@ -7,6 +7,7 @@
             'lr': [3e-4],
             'loss_function': ['pearson'],
             'optimizer': ['adam'],
+            'model_struct': [
                 os.path.join(model_folder, 'complete_sep_conv3d'),
                 os.path.join(model_folder, 'time_sep_conv3d'),
                 os.path.join(model_folder, 'gru2d'),
@@ -24,5 +25,6 @@
         exp['batch_size'] = 10  # Train/val batch size.
         # exp['normalize_labels'] = 'zscore'  # Not currently implemented
         exp['save_weights'] = True
+        exp['dataloader_override'] = True
         return exp
 

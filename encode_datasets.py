@@ -17,10 +17,6 @@ from declare_datasets_loop import declare_allen_datasets as dad
 from allen_config import Allen_Brain_Observatory_Config as Config
 from allensdk.brain_observatory import stimulus_info
 from utils.py_utils import flatten_list
-try:
-    from ops import helper_funcs, deconvolve
-except:
-    'Print failed loading Allen utils. Are you doing something fancy?'
 from ops import helper_funcs, deconvolve
 # from memory_profiler import profile
 
