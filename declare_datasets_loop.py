@@ -930,7 +930,7 @@ class declare_allen_datasets():
         return exp_dict
 
     def ALLEN_st_cells_1_movies(self):
-        """1 cell from across the visual field."""
+        """Cells across V1 w ST models and weight sharing."""
         exp_dict = self.template_dataset()
         exp_dict = self.add_globals(exp_dict)
         exp_dict['experiment_name'] = 'ALLEN_st_cells_1_movies'
@@ -953,17 +953,17 @@ class declare_allen_datasets():
                 'label'
             ]
         exp_dict['deconv_method'] = 'OASIS'
-        # exp_dict['cv_split'] = {
-        #     'cv_split_single_stim': {
-        #         'target': 0,
-        #         'split': 0.9
-        #     }
-        # }
         exp_dict['cv_split'] = {
-            'split_on_stim': 'natural_movie_two'  # Specify train set
+            'cv_split_single_stim': {
+                'target': 0,
+                'split': 0.95
+            }
         }
+        # exp_dict['cv_split'] = {
+        #     'split_on_stim': 'natural_movie_two'  # Specify train set
+        # }
         exp_dict['neural_delay'] = [8, 13]  # MS delay * 30fps for neural data
-        exp_dict['slice_frames'] = 1  # 4 MICHELE
+        exp_dict['slice_frames'] = 2  # 4 MICHELE
         exp_dict['st_conv'] = len(
             range(
                 exp_dict['neural_delay'][0],
@@ -972,7 +972,7 @@ class declare_allen_datasets():
         exp_dict['cc_repo_vars'] = {
             'output_size': [1, 1],
             'model_im_size': [152, 304, 1],
-            'loss_function': 'pearson',
+            'loss_function': 'l2',
             'score_metric': 'pearson',
             'preprocess': 'resize'
         }
@@ -1141,28 +1141,6 @@ def build_multiple_datasets(
 
     # Query all neurons for an experiment setup
     queries = [  # MICHELE: ADD LOOP HERE
-        # [{
-        #     'rf_coordinate_range': {  # Get all cells
-        #         'x_min': -10000,
-        #         'x_max': 10000,
-        #         'y_min': -10000,
-        #         'y_max': 10000,
-        #     },
-        #     'cre_line': 'Scnn1a-Tg3-Cre',  # Layer 4 models
-        #     'structure': 'VISp',
-        #     'this_dataset_name': 'MULTIALLEN_lfour_Scnn1a'
-        #     }],
-        # [{
-        #     'rf_coordinate_range': {  # Get all cells
-        #         'x_min': -10000,
-        #         'x_max': 10000,
-        #         'y_min': -10000,
-        #         'y_max': 10000,
-        #     },
-        #     'cre_line': 'Nr5a1-Cre',  # Layer 4 models
-        #     'structure': 'VISp',
-        #     'this_dataset_name': 'MULTIALLEN_lfour_Nr5a1'
-        #     }],
         [{  # DO THIS SEPARATELY
             'rf_coordinate_range': {  # Get all cells
                 'x_min': -10000,
@@ -1170,8 +1148,8 @@ def build_multiple_datasets(
                 'y_min': -10000,
                 'y_max': 10000,
             },
-            'structure': 'VISl',
-            'this_dataset_name': 'MULTIALLEN_VISl_lfour_Scnn1a'
+            'structure': 'VISam',
+            'this_dataset_name': 'MULTIALLEN_VISam'
             }]
     ]
     filter_by_stim = [

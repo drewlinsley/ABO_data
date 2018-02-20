@@ -8,8 +8,8 @@
             'loss_function': ['pearson'],
             'optimizer': ['adam'],
             'model_struct': [
-                os.path.join(model_folder, 'complete_sep_conv3d'),
-                os.path.join(model_folder, 'time_sep_conv3d'),
+                # os.path.join(model_folder, 'complete_sep_conv3d'),
+                # os.path.join(model_folder, 'time_sep_conv3d'),
                 os.path.join(model_folder, 'gru2d'),
                 os.path.join(model_folder, 'alexnet_gru2d'),
                 os.path.join(model_folder, 'sgru2d'),
@@ -26,5 +26,6 @@
         # exp['normalize_labels'] = 'zscore'  # Not currently implemented
         exp['save_weights'] = True
         exp['dataloader_override'] = True
+        exp['tensorboard_images'] = False
         return exp
 

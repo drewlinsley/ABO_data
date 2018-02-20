@@ -15,7 +15,7 @@ class data_processing(object):
         self.default_loss_function = 'LOSS_FUNCTION'
         self.score_metric = 'SCORE_METRIC'
         self.preprocess = ['PREPROCESS']
-        self.aux_scores = ['pearson_columnwise', 'l2_columnwise']
+        # self.aux_scores = ['pearson_columnwise', 'l2_columnwise']
 
         # Load vars from the meta file
         meta_data = np.load(self.meta).item()
